@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@200;300;400;500&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -50,85 +50,112 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Forcing Dark/Luxury Mode as the default root for the dark editorial vibe */
+/* ── Modern Luxury Dark Theme ─────────────────────────── */
 :root {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255,255,255, .08);
+  --badge-outline: rgba(255,255,255, .04);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255,255,255, .03);
+  --elevate-2: rgba(255,255,255, .07);
 
-  /* Core Colors */
-  --background: 0 0% 4%; /* Deepest dark grey/black */
-  --foreground: 40 20% 95%; /* Warm off-white */
-  
-  --card: 0 0% 7%;
-  --card-foreground: 40 20% 95%;
-  --card-border: 0 0% 12%;
+  /* Backgrounds — layered deep blacks */
+  --background: 220 15% 4%;          /* Near-black with cool blue undertone */
+  --foreground: 38 18% 93%;          /* Warm cream white */
 
-  --popover: 0 0% 7%;
-  --popover-foreground: 40 20% 95%;
-  --popover-border: 0 0% 12%;
+  --card: 220 12% 7%;                /* Slightly lighter than bg */
+  --card-foreground: 38 18% 93%;
+  --card-border: 220 10% 13%;
 
-  /* Primary is a luxury Gold / Brass */
-  --primary: 43 74% 49%; 
-  --primary-foreground: 0 0% 4%;
+  --popover: 220 12% 7%;
+  --popover-foreground: 38 18% 93%;
+  --popover-border: 220 10% 13%;
 
-  --secondary: 0 0% 12%;
-  --secondary-foreground: 40 20% 95%;
+  /* Gold — warm champagne */
+  --primary: 42 68% 52%;
+  --primary-foreground: 220 15% 4%;
 
-  --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 65%;
+  --secondary: 220 10% 11%;
+  --secondary-foreground: 38 18% 93%;
 
-  --accent: 43 74% 49%;
-  --accent-foreground: 0 0% 4%;
+  --muted: 220 10% 11%;
+  --muted-foreground: 220 8% 55%;
 
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 40 20% 95%;
+  --accent: 42 68% 52%;
+  --accent-foreground: 220 15% 4%;
 
-  --border: 0 0% 15%;
-  --input: 0 0% 15%;
-  --ring: 43 74% 49%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 38 18% 93%;
+
+  --border: 220 10% 16%;
+  --input: 220 10% 16%;
+  --ring: 42 68% 52%;
 
   --app-font-sans: 'DM Sans', sans-serif;
-  --app-font-serif: 'Cinzel', serif;
-  --radius: 0.25rem; /* Slightly sharp corners for modern luxury feel */
+  --app-font-serif: 'Cormorant Garamond', Georgia, serif;
+  --radius: 0px;
 
-  --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.8);
-  --shadow-xs: 0px 2px 0px 0px rgba(0,0,0,0.8);
-  --shadow-sm: 0px 2px 0px 0px rgba(0,0,0,0.8), 0px 1px 2px -1px rgba(0,0,0,0.8);
-  --shadow: 0px 2px 0px 0px rgba(0,0,0,0.8), 0px 1px 2px -1px rgba(0,0,0,0.8);
-  --shadow-md: 0px 2px 0px 0px rgba(0,0,0,0.8), 0px 2px 4px -1px rgba(0,0,0,0.8);
-  --shadow-lg: 0px 2px 0px 0px rgba(0,0,0,0.8), 0px 4px 6px -1px rgba(0,0,0,0.8);
-  --shadow-xl: 0px 2px 0px 0px rgba(0,0,0,0.8), 0px 8px 10px -1px rgba(0,0,0,0.8);
-  --shadow-2xl: 0px 2px 0px 0px rgba(0,0,0,0.8);
+  --shadow-2xs: 0 1px 2px rgba(0,0,0,0.6);
+  --shadow-xs:  0 2px 4px rgba(0,0,0,0.6);
+  --shadow-sm:  0 4px 8px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.5);
+  --shadow:     0 4px 12px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.5);
+  --shadow-md:  0 8px 20px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.4);
+  --shadow-lg:  0 16px 32px rgba(0,0,0,0.5), 0 6px 12px rgba(0,0,0,0.4);
+  --shadow-xl:  0 24px 48px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.4);
+  --shadow-2xl: 0 32px 64px rgba(0,0,0,0.6);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
 
+/* ── Base Layer ─────────────────────────── */
 @layer base {
   * {
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif tracking-wide font-normal;
+    @apply font-serif font-normal;
+    letter-spacing: 0.02em;
+  }
+
+  /* Luxury selection color */
+  ::selection {
+    background: hsl(42 68% 52% / 0.25);
+    color: hsl(38 18% 93%);
   }
 }
 
+/* ── Utility Layer ─────────────────────────── */
 @layer utilities {
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
+
   [contenteditable][data-placeholder]:empty::before {
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
     pointer-events: none;
   }
+
+  /* Gold shimmer divider */
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, hsl(var(--primary)), transparent);
+  }
+
+  .no-default-hover-elevate {}
+  .no-default-active-elevate {}
+
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
@@ -138,12 +165,15 @@
     border-radius: inherit;
     z-index: -1;
   }
+
   .toggle-elevate.toggle-elevated::before {
     background-color: var(--elevate-2);
   }
+
   .border.toggle-elevate::before {
     inset: -1px;
   }
+
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -151,6 +181,7 @@
     position: relative;
     z-index: 0;
   }
+
   .hover-elevate:not(.no-default-hover-elevate)::after,
   .active-elevate:not(.no-default-active-elevate)::after,
   .hover-elevate-2:not(.no-default-hover-elevate)::after,
@@ -162,14 +193,17 @@
     border-radius: inherit;
     z-index: 999;
   }
+
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
   .active-elevate:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-1);
   }
+
   .hover-elevate-2:hover:not(.no-default-hover-elevate)::after,
   .active-elevate-2:active:not(.no-default-active-elevate)::after {
     background-color: var(--elevate-2);
   }
+
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
