@@ -8,3 +8,46 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type ContactFormInputProjectType =
+  (typeof ContactFormInputProjectType)[keyof typeof ContactFormInputProjectType];
+
+export const ContactFormInputProjectType = {
+  residential: "residential",
+  commercial: "commercial",
+  hospitality: "hospitality",
+  retail: "retail",
+  "mixed-use": "mixed-use",
+  other: "other",
+} as const;
+
+export type ContactFormInputBudget =
+  (typeof ContactFormInputBudget)[keyof typeof ContactFormInputBudget];
+
+export const ContactFormInputBudget = {
+  "under-1m": "under-1m",
+  "1m-5m": "1m-5m",
+  "5m-10m": "5m-10m",
+  "10m-50m": "10m-50m",
+  "over-50m": "over-50m",
+} as const;
+
+export interface ContactFormInput {
+  /** @minLength 2 */
+  name: string;
+  email: string;
+  phone?: string;
+  projectType: ContactFormInputProjectType;
+  budget: ContactFormInputBudget;
+  description: string;
+}
+
+export interface ContactFormResponse {
+  success: boolean;
+  message: string;
+  id: number;
+}
+
+export interface ErrorResponse {
+  error: string;
+}

@@ -14,3 +14,25 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Submit a contact inquiry with budget information
+ * @summary Submit contact form
+ */
+export const submitContactBodyNameMin = 2;
+
+export const SubmitContactBody = zod.object({
+  name: zod.string().min(submitContactBodyNameMin),
+  email: zod.string().email(),
+  phone: zod.string().optional(),
+  projectType: zod.enum([
+    "residential",
+    "commercial",
+    "hospitality",
+    "retail",
+    "mixed-use",
+    "other",
+  ]),
+  budget: zod.enum(["under-1m", "1m-5m", "5m-10m", "10m-50m", "over-50m"]),
+  description: zod.string(),
+});

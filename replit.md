@@ -16,6 +16,24 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Artifacts
+
+### `artifacts/daybuilt-portfolio` (`@workspace/daybuilt-portfolio`)
+
+Luxury portfolio website for Daybuilt, a premium architectural/interior design company.
+
+- Pages: Home, About, Projects, Contact
+- Contact form with budget range selector — submits to `POST /api/contact`
+- 8 AI-generated project images in `public/images/`
+- Uses framer-motion for animations
+- Stack: React + Vite, Tailwind CSS, shadcn/ui, Wouter, TanStack Query
+
+### `artifacts/api-server`
+
+Express API server with routes:
+- `GET /api/healthz` — Health check
+- `POST /api/contact` — Submit contact form (saves to `contacts` table in PostgreSQL)
+
 ## Structure
 
 ```text
