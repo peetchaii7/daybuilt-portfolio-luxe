@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const featuredProjects = [
   {
     id: 1,
-    title: "The Vertex Residence",
+    title: "Housing estate",
     type: "Residential",
     image: `${import.meta.env.BASE_URL}images/project-res-1.png`,
   },

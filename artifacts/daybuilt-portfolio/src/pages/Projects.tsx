@@ -7,7 +7,7 @@ const categories = ["All", "Residential", "Commercial", "Hospitality", "Retail",
 const allProjects = [
   {
     id: 1,
-    title: "The Vertex Residence",
+    title: "Housing estate",
     type: "Residential",
     location: "Beverly Hills, CA",
     year: "2023",
