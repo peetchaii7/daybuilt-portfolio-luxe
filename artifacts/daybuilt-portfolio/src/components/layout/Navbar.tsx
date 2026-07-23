@@ -5,11 +5,12 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navLinks = [
-  { name: "Home", href: "/" },
-  { name: "About", href: "/about" },
-  { name: "Projects", href: "/projects" },
-  { name: "Calculator", href: "/calculator" },
-  { name: "Contact", href: "/contact" },
+  { name: "หน้าหลัก", href: "/" },
+  { name: "เกี่ยวกับเรา", href: "/about" },
+  { name: "ผลงาน", href: "/projects" },
+  { name: "Estimator", href: "/estimator" },
+  { name: "Design Studio", href: "/design-studio" },
+  { name: "ติดต่อ", href: "/contact" },
 ];
 
 export function Navbar() {
@@ -54,7 +55,7 @@ export function Navbar() {
             <Link
               key={link.name}
               href={link.href}
-              className={`text-xs tracking-[0.2em] uppercase transition-colors duration-300 hover:text-primary relative group ${
+              className={`text-xs tracking-wider transition-colors duration-300 hover:text-primary relative group ${
                 location === link.href ? "text-primary" : "text-foreground/70"
               }`}
             >
@@ -66,14 +67,19 @@ export function Navbar() {
               />
             </Link>
           ))}
-          <Link href="/contact" className="ml-2">
-            <Button
-              variant="outline"
-              className="border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground font-serif tracking-widest rounded-none px-5 py-2 text-xs transition-all duration-300"
-            >
-              INQUIRE
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4 ml-2">
+            <Link href="/contact">
+              <Button
+                variant="outline"
+                className="border-primary/60 text-primary hover:bg-primary hover:text-primary-foreground font-serif tracking-widest rounded-none px-5 py-2 text-xs transition-all duration-300"
+              >
+                ปรึกษาเรา
+              </Button>
+            </Link>
+            <Link href="/admin" className="text-[10px] text-muted-foreground hover:text-primary transition-colors tracking-widest uppercase ml-4 border-l border-border pl-4">
+              Admin
+            </Link>
+          </div>
         </nav>
 
         {/* Mobile Toggle */}
@@ -104,7 +110,7 @@ export function Navbar() {
               >
                 <Link
                   href={link.href}
-                  className={`text-3xl font-serif tracking-widest uppercase transition-colors hover:text-primary ${
+                  className={`text-2xl font-serif tracking-widest transition-colors hover:text-primary ${
                     location === link.href ? "text-primary" : "text-foreground/80"
                   }`}
                 >
@@ -112,6 +118,16 @@ export function Navbar() {
                 </Link>
               </motion.div>
             ))}
+            <motion.div
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: navLinks.length * 0.07 }}
+               className="mt-8 pt-8 border-t border-border w-32 flex justify-center"
+            >
+              <Link href="/admin" className="text-sm text-muted-foreground hover:text-primary transition-colors tracking-widest uppercase">
+                Admin Area
+              </Link>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

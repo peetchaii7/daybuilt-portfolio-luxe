@@ -1,24 +1,24 @@
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ArrowRight, Hexagon, Maximize, Ruler, Calculator } from "lucide-react";
+import { ArrowRight, Hexagon, Maximize, Ruler, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const featuredProjects = [
   {
     id: 1,
-    title: "Housing estate",
+    title: "บ้านพักอาศัยสไตล์ Japandi",
     type: "Residential",
     image: `${import.meta.env.BASE_URL}images/project-res-1.png`,
   },
   {
     id: 2,
-    title: "Aura Commercial Tower",
+    title: "ออฟฟิศสำนักงาน อาคารสาทร",
     type: "Commercial",
     image: `${import.meta.env.BASE_URL}images/project-com-1.png`,
   },
   {
     id: 3,
-    title: "Lumina Boutique Hotel",
+    title: "โรงแรม The Cove ภูเก็ต",
     type: "Hospitality",
     image: `${import.meta.env.BASE_URL}images/project-hos-1.png`,
   },
@@ -27,26 +27,25 @@ const featuredProjects = [
 const values = [
   {
     icon: Ruler,
-    title: "Precision Engineering",
-    desc: "Meticulous attention to structural integrity and architectural exactness."
+    title: "ความแม่นยำทางสถาปัตยกรรม",
+    desc: "เราใส่ใจในทุกรายละเอียดของโครงสร้างและการออกแบบ เพื่อให้ได้ผลลัพธ์ที่สมบูรณ์แบบที่สุด"
   },
   {
     icon: Hexagon,
-    title: "Bespoke Materials",
-    desc: "Sourcing the world's finest stones, woods, and metals for unparalleled finishes."
+    title: "วัสดุระดับพรีเมียม",
+    desc: "คัดสรรหินอ่อน ไม้แท้ และวัสดุระดับท็อปจากทั่วโลก เพื่อพื้นผิวสัมผัสที่หรูหราไม่เหมือนใคร"
   },
   {
     icon: Maximize,
-    title: "Spatial Harmony",
-    desc: "Designing volumes that breathe, flow, and elevate the human experience."
+    title: "ความกลมกลืนของพื้นที่",
+    desc: "ออกแบบพื้นที่ให้โปร่งโล่ง ลื่นไหล และยกระดับประสบการณ์การอยู่อาศัยของคุณ"
   }
 ];
 
 const stats = [
-  { value: "200+", label: "Projects Delivered" },
-  { value: "15+", label: "Years of Excellence" },
-  { value: "40+", label: "Design Awards" },
-  { value: "100%", label: "Client Satisfaction" },
+  { value: "200+", label: "โปรเจกต์" },
+  { value: "15 ปี", label: "ประสบการณ์" },
+  { value: "500+", label: "ลูกค้าพอใจ" },
 ];
 
 export default function Home() {
@@ -71,7 +70,7 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="text-xs font-sans tracking-[0.4em] text-primary uppercase mb-6"
           >
-            Daybuilt.indesign — Architecture & Interior
+            Daybuilt — Interior & Built-in
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -79,8 +78,8 @@ export default function Home() {
             transition={{ duration: 1, delay: 0.15, ease: "easeOut" }}
             className="text-5xl md:text-7xl lg:text-8xl font-serif text-foreground mb-6 tracking-tight leading-[0.95]"
           >
-            CRAFTING <br />
-            <span className="text-primary italic">LUXURY.</span>
+            ออกแบบพื้นที่ให้เป็น<br />
+            <span className="text-primary italic">มากกว่าบ้าน</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -88,7 +87,7 @@ export default function Home() {
             transition={{ duration: 1, delay: 0.35, ease: "easeOut" }}
             className="text-base md:text-lg text-foreground/70 max-w-xl mx-auto mb-10 font-light tracking-wide"
           >
-            Where visionary architecture meets impeccable execution. Building the spaces of tomorrow, today.
+            บริษัทออกแบบตกแต่งภายในและงานบิวท์อินระดับพรีเมียม บริการครบวงจรตั้งแต่บ้านพักอาศัยจนถึงโรงแรมหรูทั่วประเทศไทย
           </motion.p>
           <motion.div
             initial={{ opacity: 0 }}
@@ -96,15 +95,14 @@ export default function Home() {
             transition={{ duration: 1, delay: 0.55 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link href="/projects">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-serif tracking-widest uppercase rounded-none px-8 py-6 text-xs">
-                View Portfolio
+            <Link href="/design-studio">
+              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-serif tracking-widest rounded-none px-8 py-6 text-sm">
+                เข้าสู่ Design Studio
               </Button>
             </Link>
-            <Link href="/calculator">
-              <Button size="lg" variant="outline" className="border-foreground/30 text-foreground/80 hover:border-primary hover:text-primary font-serif tracking-widest uppercase rounded-none px-8 py-6 text-xs group">
-                <Calculator size={14} className="mr-2 group-hover:text-primary transition-colors" />
-                Material Calculator
+            <Link href="/projects">
+              <Button size="lg" variant="outline" className="border-foreground/30 text-foreground/80 hover:border-primary hover:text-primary font-serif tracking-widest rounded-none px-8 py-6 text-sm group">
+                ชมผลงานของเรา
               </Button>
             </Link>
           </motion.div>
@@ -117,7 +115,7 @@ export default function Home() {
           transition={{ delay: 1.5 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
         >
-          <span className="text-xs tracking-widest text-muted-foreground uppercase font-sans">Scroll</span>
+          <span className="text-[10px] tracking-widest text-muted-foreground uppercase font-sans">เลื่อนลง</span>
           <motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ repeat: Infinity, duration: 1.6 }}
@@ -129,7 +127,7 @@ export default function Home() {
       {/* Stats */}
       <section className="py-16 md:py-20 bg-card border-y border-border/60">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-border/50">
             {stats.map((stat, i) => (
               <motion.div
                 key={i}
@@ -137,10 +135,10 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: i * 0.12 }}
-                className="text-center"
+                className="text-center py-4 md:py-0"
               >
-                <p className="text-3xl md:text-4xl font-serif text-primary mb-2">{stat.value}</p>
-                <p className="text-xs tracking-widest uppercase text-muted-foreground font-sans">{stat.label}</p>
+                <p className="text-4xl md:text-5xl font-serif text-primary mb-2">{stat.value}</p>
+                <p className="text-sm tracking-widest text-muted-foreground font-sans">{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -157,7 +155,7 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="text-xs font-sans text-primary tracking-[0.35em] uppercase mb-8"
           >
-            The Daybuilt.indesign Standard
+            มาตรฐานของ Daybuilt
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -166,7 +164,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-2xl md:text-4xl font-serif leading-relaxed text-foreground"
           >
-            We don't just build structures; we curate environments. Every line, every texture, and every shadow is intentionally designed to evoke profound emotional resonance.
+            เราไม่ได้เพียงแค่สร้างโครงสร้าง แต่เรารังสรรค์สภาพแวดล้อม ทุกเส้นสาย ทุกพื้นผิวสัมผัส และทุกแสงเงา ถูกออกแบบมาอย่างตั้งใจเพื่อสร้างความประทับใจและความรู้สึกที่ลึกซึ้ง
           </motion.p>
           <motion.div
             initial={{ opacity: 0 }}
@@ -186,10 +184,10 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div>
               <p className="text-xs tracking-[0.35em] text-primary uppercase font-sans mb-3">Portfolio</p>
-              <h2 className="text-4xl md:text-5xl font-serif text-foreground">Selected Works</h2>
+              <h2 className="text-4xl md:text-5xl font-serif text-foreground">ผลงานเด่นของเรา</h2>
             </div>
-            <Link href="/projects" className="group flex items-center gap-2 text-primary font-sans tracking-widest uppercase text-xs transition-colors hover:text-primary/80">
-              All Projects <ArrowRight size={14} className="transition-transform group-hover:translate-x-2" />
+            <Link href="/projects" className="group flex items-center gap-2 text-primary font-sans tracking-widest text-xs transition-colors hover:text-primary/80">
+              ดูผลงานทั้งหมด <ArrowRight size={14} className="transition-transform group-hover:translate-x-2" />
             </Link>
           </div>
 
@@ -215,7 +213,7 @@ export default function Home() {
                   <p className="text-primary text-xs tracking-[0.3em] uppercase font-sans mb-2">{project.type}</p>
                   <h3 className="text-xl md:text-2xl font-serif text-foreground">{project.title}</h3>
                   <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <span className="text-xs text-muted-foreground tracking-widest font-sans">View Project</span>
+                    <span className="text-xs text-muted-foreground tracking-widest font-sans">ดูรายละเอียด</span>
                     <ArrowRight size={12} className="text-primary" />
                   </div>
                 </div>
@@ -225,26 +223,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Material Calculator CTA */}
+      {/* Material Estimator CTA */}
       <section className="py-24 md:py-32 bg-background relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(43_74%_49%_/_0.05)_0%,transparent_70%)]" />
         <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10">
           <div className="border border-border/60 bg-card/30 p-12 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
             <div>
-              <p className="text-xs tracking-[0.35em] text-primary uppercase font-sans mb-4">New Feature</p>
+              <p className="text-xs tracking-[0.35em] text-primary uppercase font-sans mb-4">บริการใหม่</p>
               <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-4">
-                Material & Cost<br />
-                <span className="text-primary italic">Estimator</span>
+                ระบบประเมินราคา<br />
+                <span className="text-primary italic">งานบิวท์อินออนไลน์</span>
               </h2>
               <p className="text-muted-foreground text-sm max-w-md leading-relaxed">
-                เลือกประเภทห้อง กำหนดพื้นที่ และเลือกระดับวัสดุที่ต้องการ ระบบจะคำนวณงบประมาณโดยประมาณให้ทันที
+                เลือกประเภทห้องและวัสดุที่คุณต้องการ เพื่อดูช่วงงบประมาณคร่าวๆ ได้ทันที พร้อมส่งข้อมูลให้ทีมงานเพื่อรับใบเสนอราคา
               </p>
             </div>
-            <Link href="/calculator">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none px-10 py-6 font-serif tracking-widest uppercase text-xs group whitespace-nowrap">
-                <Calculator size={14} className="mr-2" />
-                เริ่มคำนวณ
-                <ArrowRight size={14} className="ml-2 transition-transform group-hover:translate-x-1" />
+            <Link href="/estimator">
+              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-none px-10 py-6 font-serif tracking-widest text-sm group whitespace-nowrap">
+                <Sparkles size={16} className="mr-2" />
+                เริ่มประเมินราคา
+                <ArrowRight size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
           </div>
@@ -255,8 +253,8 @@ export default function Home() {
       <section className="py-24 md:py-32 bg-card/30">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <div className="text-center mb-20">
-            <p className="text-xs tracking-[0.35em] text-primary uppercase font-sans mb-4">Our Philosophy</p>
-            <h2 className="text-3xl md:text-5xl font-serif text-foreground">The Architecture of Excellence</h2>
+            <p className="text-xs tracking-[0.35em] text-primary uppercase font-sans mb-4">ปรัชญาของเรา</p>
+            <h2 className="text-3xl md:text-5xl font-serif text-foreground">งานสถาปัตยกรรมที่เป็นเลิศ</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border/40">

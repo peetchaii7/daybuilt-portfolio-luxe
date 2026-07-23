@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 
 const timeline = [
-  { year: "2010", title: "Foundation", desc: "Daybuilt is established with a focus on high-end residential renovations." },
-  { year: "2015", title: "Commercial Expansion", desc: "Awarded our first major commercial tower project, shifting our scale." },
-  { year: "2019", title: "Design Studio", desc: "Integrated our in-house architectural design studio for turnkey delivery." },
-  { year: "2024", title: "Global Presence", desc: "Expanding operations to international luxury hospitality projects." },
+  { year: "2010", title: "ก่อตั้งบริษัท", desc: "ก่อตั้งในกรุงเทพฯ เริ่มรับงานออกแบบภายในและบิวท์อินระดับพรีเมียม" },
+  { year: "2013", title: "เปิดโชว์รูมแห่งแรก", desc: "เปิดโชว์รูมเต็มรูปแบบบนถนนสุขุมวิท 21 เพื่อนำเสนอผลงานระดับลักชัวรี่" },
+  { year: "2016", title: "ขยายสู่กลุ่มคอมเมอร์เชียล", desc: "เริ่มขยายงานรับออกแบบและตกแต่งภายในให้กับโรงแรมและสำนักงานชั้นนำ" },
+  { year: "2019", title: "เปิดสาขาเชียงใหม่", desc: "ขยายขอบเขตการทำงานครอบคลุมภาคเหนือด้วยสาขาใหม่ที่เชียงใหม่" },
+  { year: "2022", title: "เปิดตัว Design Studio ออนไลน์", desc: "พัฒนาระบบให้บริการออกแบบและประเมินราคาผ่านช่องทางออนไลน์" },
+  { year: "2024", title: "ความสำเร็จอย่างต่อเนื่อง", desc: "ส่งมอบงานคุณภาพมากกว่า 200+ โปรเจกต์ครอบคลุมทั่วประเทศ" },
 ];
 
 export default function About() {
@@ -19,7 +21,7 @@ export default function About() {
             transition={{ duration: 0.8 }}
             className="text-4xl md:text-6xl font-serif mb-6"
           >
-            About Daybuilt
+            เกี่ยวกับ Daybuilt
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -27,7 +29,7 @@ export default function About() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-muted-foreground max-w-2xl mx-auto text-lg font-light"
           >
-            Pioneering the intersection of structural permanence and profound aesthetic beauty.
+            ผู้บุกเบิกการผสมผสานโครงสร้างที่แข็งแรง เข้ากับความงามทางสถาปัตยกรรมระดับพรีเมียม
           </motion.p>
         </div>
       </section>
@@ -53,20 +55,29 @@ export default function About() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <h2 className="text-sm text-primary uppercase tracking-widest mb-4 font-sans">Our Philosophy</h2>
+            <h2 className="text-sm text-primary uppercase tracking-widest mb-4 font-sans">ปรัชญาของเรา</h2>
             <h3 className="text-3xl md:text-5xl font-serif text-foreground mb-8 leading-tight">
-              Spaces that command attention yet invite tranquility.
+              พื้นที่ที่ดึงดูดสายตา แต่ยังคงไว้ซึ่งความสงบเงียบ
             </h3>
             <div className="space-y-6 text-muted-foreground font-light leading-relaxed text-sm md:text-base">
               <p>
-                Founded on the belief that environment shapes consciousness, Daybuilt operates at the absolute pinnacle of the construction and design industry. We do not compromise. We do not settle.
+                ด้วยความเชื่อที่ว่าสภาพแวดล้อมมีผลต่อการใช้ชีวิต Daybuilt จึงมุ่งมั่นออกแบบและสร้างสรรค์งานตกแต่งภายในระดับท็อปของอุตสาหกรรม โดยไม่ประนีประนอมกับคุณภาพ ไม่ลดทอนมาตรฐาน
               </p>
               <p>
-                For over a decade, our multidisciplinary team of visionary architects, master craftsmen, and visionary interior designers have collaborated to create spaces that transcend mere function to become lived-in art.
+                กว่า 15 ปี ที่ทีมงานมืออาชีพของเรา ทั้งสถาปนิก ช่างฝีมือผู้เชี่ยวชาญ และนักออกแบบภายใน ได้ร่วมกันเปลี่ยนพื้นที่ธรรมดาให้กลายเป็นงานศิลปะที่สามารถใช้ชีวิตอยู่ได้จริง
               </p>
               <p>
-                From private monolithic residences perched on coastal cliffs to immersive retail environments for global luxury brands, our work is defined by an obsessive dedication to detail and an uncompromising standard of material quality.
+                จากบ้านพักอาศัยส่วนตัวไปจนถึงโรงแรมและคอมเมอร์เชียลสเปซ ทุกผลงานของเราล้วนโดดเด่นด้วยความใส่ใจในทุกรายละเอียด และมาตรฐานระดับสูงในการเลือกใช้วัสดุ
               </p>
+            </div>
+            
+            <div className="mt-12 pt-8 border-t border-border/50">
+              <h4 className="text-lg font-serif text-foreground mb-4">ข้อมูลติดต่อ</h4>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>โทรศัพท์: 02-123-4567</p>
+                <p>อีเมล: info@daybuilt.co.th</p>
+                <p>ที่อยู่: อาคารอเนกวณิช ชั้น 8 สุขุมวิท 21 กรุงเทพฯ 10110</p>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -76,7 +87,7 @@ export default function About() {
       <section className="py-24 bg-background">
         <div className="max-w-5xl mx-auto px-6 md:px-12">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-serif text-foreground">Our Evolution</h2>
+            <h2 className="text-3xl font-serif text-foreground">การเดินทางของเรา</h2>
             <div className="w-12 h-0.5 bg-primary mx-auto mt-6" />
           </div>
 

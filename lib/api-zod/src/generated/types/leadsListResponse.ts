@@ -5,7 +5,8 @@
  * Daybuilt API
  * OpenAPI spec version: 0.2.0
  */
+import type { LeadRecord } from "./leadRecord";
 
-export interface HealthStatus {
-  status: string;
+export interface LeadsListResponse {
+  leads: LeadRecord[];
 }

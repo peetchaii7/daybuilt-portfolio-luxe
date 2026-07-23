@@ -11,7 +11,9 @@ import Home from "./pages/Home";
 import About from "./pages/About";
 import Projects from "./pages/Projects";
 import Contact from "./pages/Contact";
-import Calculator from "./pages/Calculator";
+import Estimator from "./pages/Estimator";
+import DesignStudio from "./pages/DesignStudio";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/not-found";
 
 const queryClient = new QueryClient();
@@ -24,7 +26,11 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/projects" component={Projects} />
         <Route path="/contact" component={Contact} />
-        <Route path="/calculator" component={Calculator} />
+        <Route path="/estimator" component={Estimator} />
+        {/* Keep backward compatibility */}
+        <Route path="/calculator" component={Estimator} />
+        <Route path="/design-studio" component={DesignStudio} />
+        <Route path="/admin" component={Admin} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

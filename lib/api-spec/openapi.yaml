@@ -1,16 +1,18 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: Daybuilt API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
-  - name: contact
-    description: Contact form operations
+  - name: leads
+    description: Unified lead management
+  - name: storage
+    description: Object storage upload and serving endpoints
 paths:
   /healthz:
     get:
@@ -25,27 +27,178 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
-  /contact:
+  /leads:
     post:
-      operationId: submitContact
-      tags: [contact]
-      summary: Submit contact form
-      description: Submit a contact inquiry with budget information
+      operationId: submitLead
+      tags: [leads]
+      summary: Submit a new lead
+      description: Unified lead from contact form, estimator, or design studio
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ContactFormInput"
+              $ref: "#/components/schemas/LeadInput"
       responses:
         "201":
-          description: Contact form submitted successfully
+          description: Lead submitted successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ContactFormResponse"
+                $ref: "#/components/schemas/LeadResponse"
         "400":
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: getLeads
+      tags: [leads]
+      summary: Get all leads (admin)
+      description: Returns all leads ordered by date. Requires x-admin-key header.
+      parameters:
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of leads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadsListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /leads/{id}/status:
+    patch:
+      operationId: updateLeadStatus
+      tags: [leads]
+      summary: Update lead status (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLeadStatusInput"
+      responses:
+        "200":
+          description: Lead status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadRecord"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Lead not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /storage/uploads/request-url:
+    post:
+      tags: [storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: Presigned upload URL generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+        "400":
+          description: Missing or invalid required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to generate upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [storage]
+      operationId: getPublicObject
+      summary: Serve a public asset
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /storage/objects/{objectPath}:
+    get:
+      tags: [storage]
+      operationId: getStorageObject
+      summary: Serve an uploaded object
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+          content:
+            "*/*":
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Object not found
           content:
             application/json:
               schema:
@@ -59,7 +212,7 @@ components:
           type: string
       required:
         - status
-    ContactFormInput:
+    LeadInput:
       type: object
       properties:
         name:
@@ -70,21 +223,32 @@ components:
           format: email
         phone:
           type: string
-        projectType:
+        source:
           type: string
-          enum: [residential, commercial, hospitality, retail, mixed-use, other]
-        budget:
+          enum: [contact, estimator, design-studio]
+        roomType:
           type: string
-          enum: [under-1m, 1m-5m, 5m-10m, 10m-50m, over-50m]
+        roomSize:
+          type: string
+        builtInType:
+          type: string
+        materials:
+          type: string
+        budgetMin:
+          type: integer
+        budgetMax:
+          type: integer
         description:
+          type: string
+        imageUrl:
+          type: string
+        projectType:
           type: string
       required:
         - name
         - email
-        - projectType
-        - budget
-        - description
-    ContactFormResponse:
+        - source
+    LeadResponse:
       type: object
       properties:
         success:
@@ -97,6 +261,103 @@ components:
         - success
         - message
         - id
+    LeadRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        source:
+          type: string
+        status:
+          type: string
+        roomType:
+          type: string
+          nullable: true
+        roomSize:
+          type: string
+          nullable: true
+        builtInType:
+          type: string
+          nullable: true
+        materials:
+          type: string
+          nullable: true
+        budgetMin:
+          type: integer
+          nullable: true
+        budgetMax:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        projectType:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - source
+        - status
+        - createdAt
+    LeadsListResponse:
+      type: object
+      properties:
+        leads:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeadRecord"
+      required:
+        - leads
+    UpdateLeadStatusInput:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [new, contacted, quoted, closed]
+        notes:
+          type: string
+      required:
+        - status
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+        objectPath:
+          type: string
     ErrorResponse:
       type: object
       properties:
