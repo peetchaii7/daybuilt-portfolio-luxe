@@ -2,18 +2,18 @@ import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { leadsTable, insertLeadSchema } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { z } from "zod/v4";
 
 const router: IRouter = Router();
 
 const ADMIN_KEY = process.env.ADMIN_KEY || "daybuilt-admin-2025";
+const VALID_STATUSES = ["new", "contacted", "quoted", "closed"] as const;
+type LeadStatus = (typeof VALID_STATUSES)[number];
 
-const updateStatusSchema = z.object({
-  status: z.enum(["new", "contacted", "quoted", "closed"]),
-  notes: z.string().optional(),
-});
-
-function requireAdmin(req: Parameters<typeof router.use>[1], res: Parameters<typeof router.use>[2], next: Parameters<typeof router.use>[3]) {
+function requireAdmin(
+  req: Parameters<typeof router.use>[1],
+  res: Parameters<typeof router.use>[2],
+  next: Parameters<typeof router.use>[3],
+) {
   const key = (req as any).headers["x-admin-key"];
   if (key !== ADMIN_KEY) {
     (res as any).status(401).json({ error: "Unauthorized" });
@@ -26,10 +26,14 @@ function requireAdmin(req: Parameters<typeof router.use>[1], res: Parameters<typ
 router.post("/leads", async (req, res) => {
   try {
     const dbInput = insertLeadSchema.parse(req.body);
-    const [lead] = await db.insert(leadsTable).values(dbInput).returning({ id: leadsTable.id });
+    const [lead] = await db
+      .insert(leadsTable)
+      .values(dbInput)
+      .returning({ id: leadsTable.id });
     res.status(201).json({
       success: true,
-      message: "ขอบคุณสำหรับความสนใจ ทีมงานจะติดต่อกลับภายใน 1-2 วันทำการ",
+      message:
+        "ขอบคุณสำหรับความสนใจ ทีมงานจะติดต่อกลับภายใน 1-2 วันทำการ",
       id: lead.id,
     });
   } catch (err) {
@@ -70,13 +74,21 @@ router.patch("/leads/:id/status", async (req, res) => {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
-    const parsed = updateStatusSchema.safeParse(req.body);
-    if (!parsed.success) {
+
+    const { status, notes } = req.body as {
+      status?: string;
+      notes?: string;
+    };
+
+    if (!status || !(VALID_STATUSES as readonly string[]).includes(status)) {
       res.status(400).json({ error: "Invalid status value" });
       return;
     }
-    const updateData: { status: string; notes?: string } = { status: parsed.data.status };
-    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+
+    const updateData: { status: LeadStatus; notes?: string } = {
+      status: status as LeadStatus,
+    };
+    if (notes !== undefined) updateData.notes = notes;
 
     const [updated] = await db
       .update(leadsTable)

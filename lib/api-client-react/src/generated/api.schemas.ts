@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Daybuilt API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 export interface HealthStatus {
   status: string;
@@ -32,6 +32,10 @@ export interface LeadInput {
   budgetMax?: number;
   description?: string;
   imageUrl?: string;
+  style?: string;
+  colorTone?: string;
+  keepLayout?: string;
+  timeline?: string;
   projectType?: string;
 }
 
@@ -56,6 +60,10 @@ export interface LeadRecord {
   budgetMax?: number | null;
   description?: string | null;
   imageUrl?: string | null;
+  style?: string | null;
+  colorTone?: string | null;
+  keepLayout?: string | null;
+  timeline?: string | null;
   projectType?: string | null;
   notes?: string | null;
   createdAt: string;

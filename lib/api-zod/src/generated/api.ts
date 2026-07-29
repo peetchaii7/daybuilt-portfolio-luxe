@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Daybuilt API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 import * as zod from "zod";
 
@@ -34,6 +34,10 @@ export const SubmitLeadBody = zod.object({
   budgetMax: zod.number().optional(),
   description: zod.string().optional(),
   imageUrl: zod.string().optional(),
+  style: zod.string().optional(),
+  colorTone: zod.string().optional(),
+  keepLayout: zod.string().optional(),
+  timeline: zod.string().optional(),
   projectType: zod.string().optional(),
 });
 
@@ -62,6 +66,10 @@ export const GetLeadsResponse = zod.object({
       budgetMax: zod.number().nullish(),
       description: zod.string().nullish(),
       imageUrl: zod.string().nullish(),
+      style: zod.string().nullish(),
+      colorTone: zod.string().nullish(),
+      keepLayout: zod.string().nullish(),
+      timeline: zod.string().nullish(),
       projectType: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.date(),
@@ -100,6 +108,10 @@ export const UpdateLeadStatusResponse = zod.object({
   budgetMax: zod.number().nullish(),
   description: zod.string().nullish(),
   imageUrl: zod.string().nullish(),
+  style: zod.string().nullish(),
+  colorTone: zod.string().nullish(),
+  keepLayout: zod.string().nullish(),
+  timeline: zod.string().nullish(),
   projectType: zod.string().nullish(),
   notes: zod.string().nullish(),
   createdAt: zod.date(),

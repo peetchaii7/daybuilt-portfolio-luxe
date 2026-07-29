@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.2.0
+  version: 0.3.0
   description: Daybuilt API
 servers:
   - url: /api
@@ -242,6 +242,14 @@ components:
           type: string
         imageUrl:
           type: string
+        style:
+          type: string
+        colorTone:
+          type: string
+        keepLayout:
+          type: string
+        timeline:
+          type: string
         projectType:
           type: string
       required:
@@ -299,6 +307,18 @@ components:
           type: string
           nullable: true
         imageUrl:
+          type: string
+          nullable: true
+        style:
+          type: string
+          nullable: true
+        colorTone:
+          type: string
+          nullable: true
+        keepLayout:
+          type: string
+          nullable: true
+        timeline:
           type: string
           nullable: true
         projectType:

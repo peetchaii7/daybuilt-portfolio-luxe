@@ -1,24 +1,25 @@
 import { Router, type IRouter } from "express";
 import { db, insertContactSchema } from "@workspace/db";
 import { contactsTable } from "@workspace/db";
-import { SubmitContactBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
+// Legacy /contact endpoint — kept for backward compat. New submissions use /leads.
 router.post("/contact", async (req, res) => {
   try {
-    const body = SubmitContactBody.parse(req.body);
-
     const dbInput = insertContactSchema.parse({
-      name: body.name,
-      email: body.email,
-      phone: body.phone ?? null,
-      projectType: body.projectType,
-      budget: body.budget,
-      description: body.description,
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone ?? null,
+      projectType: req.body.projectType,
+      budget: req.body.budget,
+      description: req.body.description,
     });
 
-    const [contact] = await db.insert(contactsTable).values(dbInput).returning({ id: contactsTable.id });
+    const [contact] = await db
+      .insert(contactsTable)
+      .values(dbInput)
+      .returning({ id: contactsTable.id });
 
     res.status(201).json({
       success: true,

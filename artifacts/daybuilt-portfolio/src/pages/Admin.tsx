@@ -231,8 +231,10 @@ export default function Admin() {
                         </p>
                         <div className="mt-2 space-y-1">
                           {lead.roomType && <p className="text-[10px] text-muted-foreground">ห้อง: {lead.roomType} ({lead.roomSize} ตร.ม.)</p>}
+                          {lead.style && <div className="text-xs text-muted-foreground mt-1">{lead.style} · {lead.colorTone}</div>}
                           {lead.builtInType && <p className="text-[10px] text-muted-foreground">แบบ: {lead.builtInType} ({lead.materials})</p>}
                           {lead.budgetMin && <p className="text-[10px] text-muted-foreground">งบ: {formatThb(lead.budgetMin)} - {formatThb(lead.budgetMax)}</p>}
+                          {lead.timeline && <div className="text-xs text-muted-foreground mt-1">{lead.timeline}</div>}
                         </div>
                       </TableCell>
                       <TableCell className="align-top pt-4">

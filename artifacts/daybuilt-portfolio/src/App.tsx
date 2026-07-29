@@ -13,6 +13,7 @@ import Projects from "./pages/Projects";
 import Contact from "./pages/Contact";
 import Estimator from "./pages/Estimator";
 import DesignStudio from "./pages/DesignStudio";
+import DesignSummary from "./pages/DesignSummary";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/not-found";
 
@@ -30,6 +31,7 @@ function Router() {
         {/* Keep backward compatibility */}
         <Route path="/calculator" component={Estimator} />
         <Route path="/design-studio" component={DesignStudio} />
+        <Route path="/design-studio/summary/:id" component={DesignSummary} />
         <Route path="/admin" component={Admin} />
         <Route component={NotFound} />
       </Switch>

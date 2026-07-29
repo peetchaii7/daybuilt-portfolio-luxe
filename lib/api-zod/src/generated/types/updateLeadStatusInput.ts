@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Daybuilt API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 import type { UpdateLeadStatusInputStatus } from "./updateLeadStatusInputStatus";
 

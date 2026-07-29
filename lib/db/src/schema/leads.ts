@@ -1,6 +1,6 @@
 import { pgTable, serial, text, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const leadsTable = pgTable("leads", {
   id: serial("id").primaryKey(),
@@ -18,6 +18,11 @@ export const leadsTable = pgTable("leads", {
   budgetMax: integer("budget_max"),
   description: text("description"),
   imageUrl: text("image_url"), // object storage path from upload
+  // Design Studio specific
+  style: text("style"),         // e.g. "Japandi", "Modern Luxury", "Minimal"
+  colorTone: text("color_tone"), // e.g. "Warm Neutral", "Dark Wood"
+  keepLayout: text("keep_layout"), // 'yes' | 'no'
+  timeline: text("timeline"),   // e.g. "ทันที", "1-3 เดือน"
   // Contact form specific
   projectType: text("project_type"),
   // Admin notes

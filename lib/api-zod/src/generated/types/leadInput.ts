@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * Daybuilt API
- * OpenAPI spec version: 0.2.0
+ * OpenAPI spec version: 0.3.0
  */
 import type { LeadInputSource } from "./leadInputSource";
 
@@ -21,5 +21,9 @@ export interface LeadInput {
   budgetMax?: number;
   description?: string;
   imageUrl?: string;
+  style?: string;
+  colorTone?: string;
+  keepLayout?: string;
+  timeline?: string;
   projectType?: string;
 }
