@@ -5,6 +5,7 @@
  * Daybuilt API
  * OpenAPI spec version: 0.3.0
  */
+import type { GenerationSelectionsKeepLayout } from "./generationSelectionsKeepLayout";
 
 /**
  * Customer-safe echo of the selections used to build the design.
@@ -15,7 +16,7 @@ export interface GenerationSelections {
   builtInType?: string | null;
   style?: string | null;
   colorTone?: string | null;
-  keepLayout?: string | null;
+  keepLayout?: GenerationSelectionsKeepLayout;
   timeline?: string | null;
   budgetMin?: number | null;
   budgetMax?: number | null;

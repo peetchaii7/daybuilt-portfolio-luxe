@@ -5,6 +5,7 @@
  * Daybuilt API
  * OpenAPI spec version: 0.3.0
  */
+import type { LeadInputKeepLayout } from "./leadInputKeepLayout";
 import type { LeadInputSource } from "./leadInputSource";
 
 export interface LeadInput {
@@ -23,7 +24,7 @@ export interface LeadInput {
   imageUrl?: string;
   style?: string;
   colorTone?: string;
-  keepLayout?: string;
+  keepLayout?: LeadInputKeepLayout;
   timeline?: string;
   projectType?: string;
   /**

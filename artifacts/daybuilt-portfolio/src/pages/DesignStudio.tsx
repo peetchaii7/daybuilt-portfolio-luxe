@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useSubmitLead, useStartLeadGeneration } from "@workspace/api-client-react";
 import { useUpload } from "@workspace/object-storage-web";
-import { Check, X, Upload, Loader2, AlertCircle } from "lucide-react";
+import { Check, X, Upload, Loader2, AlertCircle, RotateCcw, RotateCw } from "lucide-react";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -115,6 +115,9 @@ export default function DesignStudio() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploadProof, setUploadProof] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [normalizedFile, setNormalizedFile] = useState<File | null>(null);
+  const [isNormalizing, setIsNormalizing] = useState(false);
+  const [rotation, setRotation] = useState(0);
   const [designRequestId] = useState(() => {
     const storageKey = "daybuilt_design_request_id";
     const existing = sessionStorage.getItem(storageKey);
@@ -136,7 +139,7 @@ export default function DesignStudio() {
   const [colorTone, setColorTone] = useState("");
 
   // Step 5 — Layout + Budget + Timeline
-  const [keepLayout, setKeepLayout] = useState("");
+  const [keepLayout, setKeepLayout] = useState<"yes" | "no">("yes");
   const [budgetValue, setBudgetValue] = useState("");
   const [timeline, setTimeline] = useState("");
 
@@ -214,6 +217,116 @@ export default function DesignStudio() {
 
   // ─── File handling ─────────────────────────────────────────────────────────
 
+  const decodeOrientedImage = async (
+    file: File,
+  ): Promise<{
+    width: number;
+    height: number;
+    draw: CanvasImageSource;
+    cleanup: () => void;
+  }> => {
+    if ("createImageBitmap" in window) {
+      try {
+        const bitmap = await createImageBitmap(file, {
+          imageOrientation: "from-image",
+        });
+        return {
+          width: bitmap.width,
+          height: bitmap.height,
+          draw: bitmap,
+          cleanup: () => bitmap.close(),
+        };
+      } catch {
+        // Some mobile browsers expose createImageBitmap but reject the
+        // imageOrientation option. Fall through to the HTMLImageElement
+        // decoder, which applies EXIF orientation before canvas drawing.
+      }
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.decoding = "async";
+    image.src = objectUrl;
+    await image.decode();
+    return {
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      draw: image,
+      cleanup: () => URL.revokeObjectURL(objectUrl),
+    };
+  };
+
+  const normalizeImage = async (
+    file: File,
+    absoluteRotation: number = 0,
+  ): Promise<File | null> => {
+    let cleanupDecodedImage = () => {};
+    try {
+      setIsNormalizing(true);
+      setFieldError("");
+
+      // Browsers decode the EXIF orientation before these pixels are drawn.
+      // Re-encoding the canvas bakes that corrected orientation into the file
+      // that is both previewed and uploaded.
+      const decoded = await decodeOrientedImage(file);
+      cleanupDecodedImage = decoded.cleanup;
+      if (decoded.width * decoded.height > 40_000_000) {
+        throw new Error("ภาพมีความละเอียดสูงเกินไป กรุณาใช้ภาพไม่เกิน 40 ล้านพิกเซล");
+      }
+      const totalRotation = ((absoluteRotation % 360) + 360) % 360;
+
+      // Determine canvas dimensions based on rotation
+      const needsSwap = totalRotation === 90 || totalRotation === 270;
+      const canvasWidth = needsSwap ? decoded.height : decoded.width;
+      const canvasHeight = needsSwap ? decoded.width : decoded.height;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("ไม่สามารถสร้าง canvas context ได้");
+
+      // Apply rotation transform
+      ctx.translate(canvasWidth / 2, canvasHeight / 2);
+      ctx.rotate((totalRotation * Math.PI) / 180);
+      ctx.drawImage(
+        decoded.draw,
+        -decoded.width / 2,
+        -decoded.height / 2,
+      );
+
+      // Convert to blob with quality reduction if needed
+      let quality = 0.92;
+      let blob: Blob | null = null;
+
+      do {
+        blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), 'image/jpeg', quality);
+        });
+        if (!blob) throw new Error("ไม่สามารถแปลงภาพเป็น JPEG ได้");
+        if (blob.size <= 10 * 1024 * 1024) break;
+        quality -= 0.1;
+      } while (quality > 0.3);
+
+      if (!blob || blob.size > 10 * 1024 * 1024) {
+        throw new Error("ไฟล์ใหญ่เกินไป ไม่สามารถลดขนาดให้ต่ำกว่า 10MB ได้");
+      }
+
+      const normalizedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+
+      return normalizedFile;
+    } catch (err: any) {
+      setFieldError(err?.message || "เกิดข้อผิดพลาดในการประมวลผลภาพ");
+      return null;
+    } finally {
+      cleanupDecodedImage();
+      setIsNormalizing(false);
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -228,9 +341,37 @@ export default function DesignStudio() {
       setFieldError("ไฟล์ต้องมีขนาดไม่เกิน 10MB");
       return;
     }
-    setFieldError("");
-    setPreviewUrl(URL.createObjectURL(file));
-    await uploadFile(file);
+
+    // Normalize and upload
+    const normalized = await normalizeImage(file, 0);
+    if (!normalized) return;
+
+    setNormalizedFile(normalized);
+    setRotation(0);
+    setPreviewUrl(URL.createObjectURL(normalized));
+    await uploadFile(normalized);
+  };
+
+  const handleRotate = async (degrees: number) => {
+    if (!normalizedFile || isNormalizing || isUploading) return;
+
+    const newRotation = (rotation + degrees) % 360;
+
+    // Get original file from input
+    const originalFile = fileInputRef.current?.files?.[0];
+    if (!originalFile) return;
+
+    // Re-normalize from the original upload using one absolute rotation value,
+    // avoiding cumulative quality loss and stale-state double rotation.
+    const rotated = await normalizeImage(originalFile, newRotation);
+    if (!rotated) return;
+
+    setRotation(newRotation);
+    setNormalizedFile(rotated);
+    setPreviewUrl(URL.createObjectURL(rotated));
+
+    // Re-upload
+    await uploadFile(rotated);
   };
 
   useEffect(() => {
@@ -243,6 +384,8 @@ export default function DesignStudio() {
     setImageUrl(null);
     setUploadProof(null);
     setPreviewUrl(null);
+    setNormalizedFile(null);
+    setRotation(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -283,7 +426,7 @@ export default function DesignStudio() {
   };
 
   const canContinue =
-    (step === 1 && Boolean(imageUrl)) ||
+    (step === 1 && Boolean(imageUrl && uploadProof) && !isNormalizing && !isUploading) ||
     (step === 2 && Boolean(roomType && roomSize)) ||
     (step === 3 && builtInTypes.length > 0) ||
     (step === 4 && Boolean(style && colorTone)) ||
@@ -384,24 +527,54 @@ export default function DesignStudio() {
                 <p className="text-xs text-white/30 mt-1">หรือลากวางไฟล์ที่นี่</p>
               </div>
             ) : (
-              <div className="relative inline-block">
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className="max-h-64 max-w-full object-cover border border-white/10"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 bg-black/70 border border-white/20 p-1 hover:bg-black transition-colors"
-                >
-                  <X size={14} />
-                </button>
-                {imageUrl && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-[#c9a84c]">
-                    <Check size={12} /> อัปโหลดสำเร็จ
-                  </div>
-                )}
+              <div className="space-y-3">
+                <div className="relative inline-block">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="max-h-64 max-w-full object-contain border border-white/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    disabled={isNormalizing || isUploading}
+                    className="absolute top-2 right-2 bg-black/70 border border-white/20 p-1 hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X size={14} />
+                  </button>
+                  {imageUrl && !isNormalizing && !isUploading && (
+                    <div className="absolute bottom-2 left-2 flex items-center gap-2 text-xs text-[#c9a84c] bg-black/70 border border-white/20 px-2 py-1">
+                      <Check size={12} /> อัปโหลดสำเร็จ
+                    </div>
+                  )}
+                  {(isNormalizing || isUploading) && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <Loader2 size={24} className="text-[#c9a84c] animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRotate(-90)}
+                    disabled={isNormalizing || isUploading}
+                    className="flex items-center gap-2 border border-white/20 text-white px-4 py-2 text-xs tracking-wide hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="หัน 90° ทวนเข็ม"
+                  >
+                    <RotateCcw size={14} />
+                    หมุนซ้าย
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRotate(90)}
+                    disabled={isNormalizing || isUploading}
+                    className="flex items-center gap-2 border border-white/20 text-white px-4 py-2 text-xs tracking-wide hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="หัน 90° ตามเข็ม"
+                  >
+                    <RotateCw size={14} />
+                    หมุนขวา
+                  </button>
+                </div>
               </div>
             )}
 
@@ -414,6 +587,14 @@ export default function DesignStudio() {
             />
 
             {/* Progress bar */}
+            {isNormalizing && (
+              <div className="mt-4">
+                <div className="h-px bg-white/10 w-full">
+                  <div className="h-px bg-[#c9a84c] w-1/2 animate-pulse" />
+                </div>
+                <p className="text-xs text-white/40 mt-1">กำลังปรับแต่งภาพ...</p>
+              </div>
+            )}
             {isUploading && (
               <div className="mt-4">
                 <div className="h-px bg-white/10 w-full">
@@ -437,7 +618,7 @@ export default function DesignStudio() {
                 type="button"
                 data-testid="button-next-step1"
                 className={btnNext}
-                disabled={isUploading || !canContinue}
+                  disabled={isUploading || isNormalizing || !canContinue}
                 onClick={goNext}
               >
                 ถัดไป →
@@ -598,10 +779,10 @@ export default function DesignStudio() {
             {/* Keep Layout */}
             <p className="text-xs text-[#c9a84c] tracking-widest uppercase mb-3">การปรับ Layout</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-              {[
-                { val: "yes", label: "รักษา Layout เดิม", desc: "ต้องการคงตำแหน่งที่มีอยู่" },
-                { val: "no", label: "ยินดีให้ปรับ Layout ใหม่", desc: "ให้ทีมออกแบบได้อิสระ" },
-              ].map((o) => (
+              {([
+                { val: "yes", label: "รักษาสัดส่วนห้องและมุมกล้องเดิม", desc: "AI จะเพิ่มหรือปรับงานบิวท์อิน แสง สี และวัสดุ โดยคงพื้นที่และมุมกล้องจากภาพต้นฉบับ" },
+                { val: "no", label: "อนุญาตให้ AI ปรับ Layout", desc: "AI สามารถปรับตำแหน่งงานบิวท์อินและองค์ประกอบพื้นที่ได้ โดยยังยึดห้องในภาพเป็นหลัก" },
+              ] as const).map((o) => (
                 <button
                   type="button"
                   key={o.val}
@@ -610,8 +791,8 @@ export default function DesignStudio() {
                   aria-pressed={keepLayout === o.val}
                 >
                   <span className="pointer-events-none block pr-6">
-                    <span className="block text-sm font-medium">{o.label}</span>
-                    <span className="mt-1 block text-xs text-white/40">{o.desc}</span>
+                    <span className="block text-sm font-medium mb-2">{o.label}</span>
+                    <span className="mt-1 block text-xs text-white/40 leading-relaxed">{o.desc}</span>
                   </span>
                   {keepLayout === o.val && <Check aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-3 text-[#c9a84c]" />}
                 </button>
@@ -771,7 +952,7 @@ export default function DesignStudio() {
                   <img
                     src={previewUrl}
                     alt="Room preview"
-                    className="max-h-48 max-w-full object-cover border border-white/10"
+                    className="max-h-48 max-w-full object-contain border border-white/10"
                   />
                 </div>
               )}

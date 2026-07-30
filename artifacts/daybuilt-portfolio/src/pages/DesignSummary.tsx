@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import {
   useGetLeadGeneration,
@@ -7,6 +7,153 @@ import {
   useGetLeadImage,
   getGetLeadImageQueryKey,
 } from "@workspace/api-client-react";
+
+// ─── Before/After Comparison Slider ──────────────────────────────────────────
+
+interface ComparisonSliderProps {
+  beforeUrl: string;
+  afterUrl: string;
+  beforeAlt: string;
+  afterAlt: string;
+}
+
+function ComparisonSlider({ beforeUrl, afterUrl, beforeAlt, afterAlt }: ComparisonSliderProps) {
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Calculate aspect ratio from the before image
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      setAspectRatio(img.naturalWidth / img.naturalHeight);
+    };
+    img.src = beforeUrl;
+    return () => {
+      img.onload = null;
+      img.src = "";
+    };
+  }, [beforeUrl]);
+
+  // Track container width for proper image sizing
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, []);
+
+  const updatePosition = (clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const percent = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(percent);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    updatePosition(e.clientX);
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    updatePosition(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    const target = e.currentTarget;
+    if (target.hasPointerCapture(e.pointerId)) {
+      target.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setSliderPosition((prev) => Math.max(0, prev - 5));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setSliderPosition((prev) => Math.min(100, prev + 5));
+    }
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative w-full border border-white/10 bg-black overflow-hidden select-none touch-none"
+      style={{
+        aspectRatio: aspectRatio ? `${aspectRatio}` : undefined,
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      role="slider"
+      aria-valuenow={Math.round(sliderPosition)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label="เลื่อนเพื่อเปรียบเทียบภาพก่อนและหลัง"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
+      {/* After image (full width) */}
+      <img
+        src={afterUrl}
+        alt={afterAlt}
+        data-testid="img-generated"
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+      />
+
+      {/* Before image (clipped) */}
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        style={{ width: `${sliderPosition}%` }}
+      >
+        <div className="absolute inset-0" style={{ width: containerWidth || '100%' }}>
+          <img
+            src={beforeUrl}
+            alt={beforeAlt}
+            data-testid="img-source"
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+        </div>
+      </div>
+
+      {/* Slider handle */}
+      <div
+        className="absolute top-0 bottom-0 w-1 bg-[#c9a84c] cursor-ew-resize"
+        style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#c9a84c] border-2 border-black flex items-center justify-center shadow-lg">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-black">
+            <path d="M5 8L3 8M3 8L5 6M3 8L5 10M11 8L13 8M13 8L11 6M13 8L11 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Labels */}
+      <div className="absolute top-3 left-3 bg-black/70 border border-white/20 px-2 py-1 text-[10px] text-white/90 tracking-wide pointer-events-none">
+        ต้นฉบับ
+      </div>
+      <div className="absolute top-3 right-3 bg-black/70 border border-white/20 px-2 py-1 text-[10px] text-[#c9a84c] tracking-wide pointer-events-none">
+        AI
+      </div>
+    </div>
+  );
+}
 
 export default function DesignSummary() {
   const params = useParams<{ id: string }>();
@@ -126,9 +273,9 @@ export default function DesignSummary() {
 
   const keepLayoutLabel =
     selections?.keepLayout === "yes"
-      ? "รักษา Layout เดิม"
+      ? "รักษาสัดส่วนห้องและมุมกล้องเดิม"
       : selections?.keepLayout === "no"
-      ? "ยินดีให้ปรับ Layout ใหม่"
+      ? "อนุญาตให้ AI ปรับ Layout"
       : selections?.keepLayout || null;
 
   if (!id) {
@@ -228,30 +375,31 @@ export default function DesignSummary() {
           </div>
         )}
 
-        {/* ── Images Grid ──────────────────────────────────────────────────── */}
-        {(sourceImageUrl || generatedImageUrl) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {sourceImageUrl && (
-              <div>
-                <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-3">ห้องต้นฉบับ</p>
-                <img
-                  src={sourceImageUrl}
-                  alt="ห้องต้นฉบับ"
-                  data-testid="img-source"
-                  className="w-full h-auto object-cover border border-white/10"
-                />
-              </div>
-            )}
-            {generatedImageUrl && (
-              <div>
-                <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-3">ภาพแนวคิด AI</p>
-                <img
-                  src={generatedImageUrl}
-                  alt="ภาพแนวคิด AI"
-                  data-testid="img-generated"
-                  className="w-full h-auto object-cover border border-white/10"
-                />
-              </div>
+        {/* ── Before/After Comparison ──────────────────────────────────────── */}
+        {sourceImageUrl && generatedImageUrl && (
+          <div className="mb-8">
+            <div className="mb-4">
+              <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-1">
+                {selections?.keepLayout === "no"
+                  ? "AI Concept Preview — อนุญาตให้ปรับ Layout"
+                  : "AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ"}
+              </p>
+              <p className="text-xs text-white/40">
+                เลื่อนเพื่อเปรียบเทียบก่อนและหลัง
+              </p>
+            </div>
+            <ComparisonSlider
+              beforeUrl={sourceImageUrl}
+              afterUrl={generatedImageUrl}
+              beforeAlt="ห้องต้นฉบับ"
+              afterAlt="ภาพแนวคิด AI"
+            />
+            {selections?.keepLayout && (
+              <p className="text-xs text-white/40 mt-3">
+                {selections.keepLayout === "yes"
+                  ? "✓ ใช้โหมดรักษาสัดส่วนห้องและมุมกล้องเดิม"
+                  : "○ อนุญาตให้ AI ปรับ Layout"}
+              </p>
             )}
           </div>
         )}
@@ -339,11 +487,11 @@ export default function DesignSummary() {
             <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">
               หมายเหตุ
             </p>
-            <p className="text-xs text-white/50 leading-relaxed">
-              AI Concept Preview — not final construction drawing
+            <p className="text-xs text-white/50 leading-relaxed mb-2">
+              <strong className="text-white/70">AI Concept Preview</strong> — This is a conceptual visualization, not a final construction drawing.
             </p>
-            <p className="mt-2 text-xs text-white/50 leading-relaxed">
-              ภาพนี้เป็นแนวคิดเบื้องต้น ทีมจะส่งแบบรายละเอียดให้ภายหลัง
+            <p className="text-xs text-white/50 leading-relaxed">
+              ภาพนี้เป็นแนวคิดเบื้องต้นที่สร้างจากภาพห้องจริงของคุณ ทีมจะส่งแบบรายละเอียดและใบเสนอราคาให้ภายหลัง
             </p>
           </div>
         )}

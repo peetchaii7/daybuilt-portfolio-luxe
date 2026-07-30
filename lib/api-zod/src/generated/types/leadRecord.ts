@@ -5,6 +5,7 @@
  * Daybuilt API
  * OpenAPI spec version: 0.3.0
  */
+import type { LeadRecordKeepLayout } from "./leadRecordKeepLayout";
 
 export interface LeadRecord {
   id: number;
@@ -23,7 +24,7 @@ export interface LeadRecord {
   imageUrl?: string | null;
   style?: string | null;
   colorTone?: string | null;
-  keepLayout?: string | null;
+  keepLayout?: LeadRecordKeepLayout;
   timeline?: string | null;
   projectType?: string | null;
   notes?: string | null;

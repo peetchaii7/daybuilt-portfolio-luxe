@@ -249,6 +249,17 @@ describe('POST /api/leads (design-studio)', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects an unknown layout mode at the API boundary', async () => {
+    const { uploadProof, objectPath } = await uploadValidImage();
+    const res = await request(app)
+      .post('/api/leads')
+      .send({
+        ...designStudioLeadBody(objectPath, uploadProof, designRequestId()),
+        keepLayout: 'sometimes',
+      });
+    expect(res.status).toBe(400);
+  });
+
   it('returns the same lead id and credential for concurrent duplicates, one row only', async () => {
     const { uploadProof, objectPath } = await uploadValidImage();
     const reqId = designRequestId();

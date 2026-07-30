@@ -8,10 +8,13 @@ import type { Logger } from 'pino';
 
 import { buildDesignPrompt, buildPromptSummary } from './designPrompt';
 import {
-  extensionForImageContentType,
   isAllowedImageContentType,
   ObjectStorageService,
 } from './objectStorage';
+import {
+  prepareRoomImage,
+  restoreRoomAspectRatio,
+} from './roomImageGeometry';
 
 export const GENERATION_TIMEOUT_MS = 120_000;
 export const GENERATION_PROVIDER = 'openai';
@@ -26,6 +29,17 @@ const CUSTOMER_ERROR_GENERIC =
 const objectStorageService = new ObjectStorageService();
 
 export type ClaimReason = 'start' | 'retry';
+
+export function buildImageEditOptions(
+  keepLayout: string | null | undefined,
+  size: '1024x1024' | '1536x1024' | '1024x1536',
+) {
+  return {
+    inputFidelity: keepLayout === 'no' ? ('low' as const) : ('high' as const),
+    size,
+    quality: 'high' as const,
+  };
+}
 
 export type ClaimResult =
   | { claimed: true; lead: Lead }
@@ -216,12 +230,11 @@ export async function runGeneration(
       throw new Error(`Unsupported source content type: ${contentType}`);
     }
 
+    const { buffer: preparedSource, plan } =
+      await prepareRoomImage(sourceBuffer);
     tempDir = await mkdtemp(join(tmpdir(), 'daybuilt-gen-'));
-    const sourcePath = join(
-      tempDir,
-      `${randomUUID()}.${extensionForImageContentType(contentType)}`,
-    );
-    await writeFile(sourcePath, sourceBuffer, { mode: 0o600 });
+    const sourcePath = join(tempDir, `${randomUUID()}.png`);
+    await writeFile(sourcePath, preparedSource, { mode: 0o600 });
 
     // 2. Ask the managed OpenAI integration to edit the photo. Imported
     // lazily so a missing integration cannot crash server startup.
@@ -229,14 +242,17 @@ export async function runGeneration(
       '@workspace/integrations-openai-ai-server/image'
     );
 
-    const generated = await withTimeout(
-      editImages([sourcePath], prompt),
+    const generatedCanvas = await withTimeout(
+      editImages([sourcePath], prompt, undefined, {
+        ...buildImageEditOptions(lead.keepLayout, plan.providerSize),
+      }),
       GENERATION_TIMEOUT_MS,
     );
 
-    if (!generated || generated.length === 0) {
+    if (!generatedCanvas || generatedCanvas.length === 0) {
       throw new Error('Image model returned an empty result');
     }
+    const generated = await restoreRoomAspectRatio(generatedCanvas, plan);
 
     // 3. Store the render privately; only the lead image endpoint serves it.
     const generatedPath = await objectStorageService.uploadObjectBuffer({

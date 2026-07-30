@@ -18,6 +18,14 @@ export const LeadInputSource = {
   "design-studio": "design-studio",
 } as const;
 
+export type LeadInputKeepLayout =
+  (typeof LeadInputKeepLayout)[keyof typeof LeadInputKeepLayout];
+
+export const LeadInputKeepLayout = {
+  yes: "yes",
+  no: "no",
+} as const;
+
 export interface LeadInput {
   /** @minLength 2 */
   name: string;
@@ -34,7 +42,7 @@ export interface LeadInput {
   imageUrl?: string;
   style?: string;
   colorTone?: string;
-  keepLayout?: string;
+  keepLayout?: LeadInputKeepLayout;
   timeline?: string;
   projectType?: string;
   /**
@@ -55,6 +63,15 @@ export interface LeadResponse {
   accessToken?: string;
 }
 
+export type LeadRecordKeepLayout =
+  | (typeof LeadRecordKeepLayout)[keyof typeof LeadRecordKeepLayout]
+  | null;
+
+export const LeadRecordKeepLayout = {
+  yes: "yes",
+  no: "no",
+} as const;
+
 export interface LeadRecord {
   id: number;
   name: string;
@@ -72,7 +89,7 @@ export interface LeadRecord {
   imageUrl?: string | null;
   style?: string | null;
   colorTone?: string | null;
-  keepLayout?: string | null;
+  keepLayout?: LeadRecordKeepLayout;
   timeline?: string | null;
   projectType?: string | null;
   notes?: string | null;
@@ -115,6 +132,15 @@ export interface UpdateLeadStatusInput {
   notes?: string;
 }
 
+export type GenerationSelectionsKeepLayout =
+  | (typeof GenerationSelectionsKeepLayout)[keyof typeof GenerationSelectionsKeepLayout]
+  | null;
+
+export const GenerationSelectionsKeepLayout = {
+  yes: "yes",
+  no: "no",
+} as const;
+
 /**
  * Customer-safe echo of the selections used to build the design.
  */
@@ -124,7 +150,7 @@ export interface GenerationSelections {
   builtInType?: string | null;
   style?: string | null;
   colorTone?: string | null;
-  keepLayout?: string | null;
+  keepLayout?: GenerationSelectionsKeepLayout;
   timeline?: string | null;
   budgetMin?: number | null;
   budgetMax?: number | null;

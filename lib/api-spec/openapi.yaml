@@ -451,6 +451,7 @@ components:
           type: string
         keepLayout:
           type: string
+          enum: [yes, no]
         timeline:
           type: string
         projectType:
@@ -533,6 +534,7 @@ components:
           nullable: true
         keepLayout:
           type: string
+          enum: [yes, no]
           nullable: true
         timeline:
           type: string
@@ -639,6 +641,7 @@ components:
           nullable: true
         keepLayout:
           type: string
+          enum: [yes, no]
           nullable: true
         timeline:
           type: string

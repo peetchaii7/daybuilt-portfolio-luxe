@@ -102,11 +102,13 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
         ].join(' ')
       : [
           'This must be a genuine edit of the supplied photograph, not a new image.',
-          'Preserve the room geometry exactly: identical camera position, focal length and perspective,',
-          'identical wall positions and proportions, identical window and door openings,',
-          'identical ceiling height, identical floor plan and identical daylight direction.',
-          'Every existing architectural element must remain in the same place and at the same scale.',
-          'Only the built-in furniture, finishes and styling may change.',
+          'Use the supplied room image as the primary structural and composition reference, not merely as a style reference.',
+          'Preserve the exact perspective, camera position, camera angle, focal composition, room dimensions and geometry.',
+          'Keep identical wall positions and widths, room depth, floor direction, ceiling shape and height.',
+          'Keep every window, door, column, beam, opening, socket and fixed architectural edge in exactly the same position and at the same scale.',
+          'Do not expand, narrow, crop, rotate, extend or redesign the architectural space. Make no structural changes.',
+          'Perform furniture insertion only: add or replace built-in furniture, lighting, finishes, colours and restrained decorative details.',
+          'The original room must remain immediately recognisable. Room accuracy has priority over visual drama.',
         ].join(' ');
 
   const lines: string[] = [
@@ -163,6 +165,7 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
     '',
     'OUTPUT REQUIREMENTS',
     '- Photorealistic result suitable to show a paying customer as a sales preview: correct perspective, physically plausible lighting and reflections, realistic material textures and believable contact shadows.',
+    '- Preserve the source image orientation and aspect ratio. Treat any plain dark padding outside the supplied photograph as temporary canvas only; do not place architecture or furniture in it.',
     '- Keep the image clean and uncluttered; add only minimal, tasteful styling props that a Thai homeowner would plausibly own.',
     '- No text, no lettering, no labels, no logos, no watermarks, no signatures, no dimension annotations and no UI overlays anywhere in the image.',
     '- No people, no pets, no collage, no split screens, no before/after panels, no picture-in-picture and no borders or frames.',
