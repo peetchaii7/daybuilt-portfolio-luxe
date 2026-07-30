@@ -1,165 +1,339 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-const categories = ["ทั้งหมด", "Residential", "Commercial", "Hospitality", "Built-in", "Retail"];
+const BASE = import.meta.env.BASE_URL;
 
-const allProjects = [
+interface Project {
+  id: number;
+  title: string;
+  category: string;
+  location: string;
+  description: string;
+  image: string;
+}
+
+const sections: { id: string; label: string; labelEn: string; projects: Project[] }[] = [
   {
-    id: 1,
-    title: "บ้านพักอาศัยสไตล์ Japandi",
-    type: "Residential",
-    location: "กรุงเทพฯ",
-    description: "บ้านเดี่ยว 3 ชั้น 450 ตร.ม. สไตล์ Japandi ผสมไม้ธรรมชาติและคอนกรีต",
-    image: `${import.meta.env.BASE_URL}images/project-res-1.png`,
+    id: "bedroom",
+    label: "ห้องนอน",
+    labelEn: "Bedroom",
+    projects: [
+      {
+        id: 101,
+        title: "ตู้เสื้อผ้า Walk-in สไตล์ Japandi",
+        category: "ห้องนอน",
+        location: "สุขุมวิท 49, กรุงเทพฯ",
+        description: "ตู้เสื้อผ้า Walk-in 4.5 เมตร วัสดุไม้ออคและลามิเนตขาว ระบบบานเลื่อนซ่อนราง พร้อมไฟ LED ภายใน",
+        image: `${BASE}images/bedroom-walkin-1.jpg`,
+      },
+      {
+        id: 102,
+        title: "หัวเตียงบิ้วท์อินพร้อมโต๊ะข้างเตียง",
+        category: "ห้องนอน",
+        location: "พระราม 9, กรุงเทพฯ",
+        description: "หัวเตียงบิ้วท์อินกว้าง 3.2 เมตร ผนังหุ้มผ้าลินินเทา พร้อมชั้นวางข้างเตียงลอยตัวและไฟอ่านหนังสือ",
+        image: `${BASE}images/bedroom-headboard-1.jpg`,
+      },
+      {
+        id: 103,
+        title: "ตู้เสื้อผ้า Modern Luxury",
+        category: "ห้องนอน",
+        location: "ลาดพร้าว, กรุงเทพฯ",
+        description: "ตู้เสื้อผ้าบานกระจกบรอนซ์ 5 เมตร วัสดุ High Gloss สลับไม้ Walnut พร้อมระบบแขวนเสื้อ 2 ชั้น",
+        image: `${BASE}images/bedroom-wardrobe-2.jpg`,
+      },
+    ],
   },
   {
-    id: 2,
-    title: "ออฟฟิศสำนักงาน อาคารสาทร",
-    type: "Commercial",
-    location: "กรุงเทพฯ",
-    description: "Co-working Office 800 ตร.ม. วัสดุธรรมชาติ แสงธรรมชาติ",
-    image: `${import.meta.env.BASE_URL}images/project-com-1.png`,
+    id: "living",
+    label: "ห้องนั่งเล่น",
+    labelEn: "Living Room",
+    projects: [
+      {
+        id: 201,
+        title: "ผนังทีวีพร้อม Floating Shelf",
+        category: "ห้องนั่งเล่น",
+        location: "ทองหล่อ, กรุงเทพฯ",
+        description: "ผนังทีวีบิ้วท์อิน 5 เมตร ไม้ Teak แบ็คแพนแผ่นหนัง ตู้เก็บของซ่อนบานเรียบ พร้อมไฟ LED Warm White",
+        image: `${BASE}images/living-tvwall-1.jpg`,
+      },
+      {
+        id: 202,
+        title: "ตู้โชว์และชั้นวางสไตล์มินิมอล",
+        category: "ห้องนั่งเล่น",
+        location: "เอกมัย, กรุงเทพฯ",
+        description: "ชุดตู้โชว์บิ้วท์อินเต็มผนัง 6 เมตร ออกแบบให้รับน้ำหนักได้มาก ผสมบานกระจก-บานเรียบสลับ",
+        image: `${BASE}images/living-shelf-1.jpg`,
+      },
+    ],
   },
   {
-    id: 3,
-    title: "โรงแรม The Cove ภูเก็ต",
-    type: "Hospitality",
-    location: "ภูเก็ต",
-    description: "บูติคโฮเทล 24 ห้อง วิวทะเล tropical luxury",
-    image: `${import.meta.env.BASE_URL}images/project-hos-1.png`,
+    id: "display",
+    label: "ตู้โชว์ / Media Wall",
+    labelEn: "Display Cabinet & Media Wall",
+    projects: [
+      {
+        id: 301,
+        title: "Media Wall คอนโด Modern Luxury",
+        category: "ตู้โชว์ / Media Wall",
+        location: "อโศก, กรุงเทพฯ",
+        description: "Media Wall กว้าง 4.8 เมตร วัสดุไม้ Walnut สลับแผ่นกำมะหยี่ Navy Blue ตู้แขวนลอยตัวใต้ทีวี",
+        image: `${BASE}images/display-media-1.jpg`,
+      },
+      {
+        id: 302,
+        title: "ตู้โชว์สะสมนาฬิกาและของสะสม",
+        category: "ตู้โชว์ / Media Wall",
+        location: "สาทร, กรุงเทพฯ",
+        description: "ตู้โชว์กระจกบรอนซ์ฝ้า 3 ช่อง พร้อมไฟ Spotlight ภายใน ออกแบบแนว Gallery สำหรับจัดแสดงของสะสม",
+        image: `${BASE}images/display-showcase-1.jpg`,
+      },
+      {
+        id: 303,
+        title: "Feature Wall ห้องรับแขก",
+        category: "ตู้โชว์ / Media Wall",
+        location: "พระโขนง, กรุงเทพฯ",
+        description: "Feature Wall ผสมผสานชั้นลอยตัวไม้ดำ ผนังไม้ Fluted Panel และไฟ Strip LED หลังชั้น",
+        image: `${BASE}images/display-feature-1.jpg`,
+      },
+    ],
   },
   {
-    id: 4,
-    title: "ครัวบิวท์อิน สาทร",
-    type: "Built-in",
-    location: "กรุงเทพฯ",
-    description: "ครัวบิวท์อิน 28 ตร.ม. อะคริลิกและไม้ออค ระบบจัดเก็บอัจฉริยะ",
-    image: `${import.meta.env.BASE_URL}images/project-mix-1.png`,
+    id: "storage",
+    label: "ตู้บิ้วท์อินและพื้นที่เก็บของ",
+    labelEn: "Built-in Cabinets & Storage",
+    projects: [
+      {
+        id: 401,
+        title: "ตู้เก็บของใต้บันได",
+        category: "ตู้บิ้วท์อินและพื้นที่เก็บของ",
+        location: "วังหิน, กรุงเทพฯ",
+        description: "ใช้พื้นที่ใต้บันไดสร้างระบบเก็บของแบบ Custom 100% ช่องลิ้นชัก บานเปิด และชั้นวางปรับระดับได้",
+        image: `${BASE}images/storage-stair-1.jpg`,
+      },
+      {
+        id: 402,
+        title: "ตู้รองเท้าบิ้วท์อิน Entry Zone",
+        category: "ตู้บิ้วท์อินและพื้นที่เก็บของ",
+        location: "ลาดกระบัง, กรุงเทพฯ",
+        description: "ตู้รองเท้าบิ้วท์อิน 2.4 เมตรพร้อมม้านั่งและราวแขวน จัดโซน Entry สะอาดตา ทำจากวัสดุ PVC กันความชื้น",
+        image: `${BASE}images/storage-shoe-1.jpg`,
+      },
+      {
+        id: 403,
+        title: "ห้องซักผ้าและ Utility Room",
+        category: "ตู้บิ้วท์อินและพื้นที่เก็บของ",
+        location: "บางนา, กรุงเทพฯ",
+        description: "ออกแบบ Utility Room ขนาด 4 ตร.ม. ให้ฟังก์ชันครบ โต๊ะรีดผ้าพับเก็บได้ ชั้นวาง และตู้เก็บอุปกรณ์ทำความสะอาด",
+        image: `${BASE}images/storage-utility-1.jpg`,
+      },
+    ],
   },
   {
-    id: 5,
-    title: "คอนโด The Room อโศก",
-    type: "Residential",
-    location: "กรุงเทพฯ",
-    description: "คอนโด 2 ห้องนอน 85 ตร.ม. Modern Luxury บิวท์อินครบ",
-    image: `${import.meta.env.BASE_URL}images/project-res-2.png`,
+    id: "kitchen",
+    label: "ครัวและ Pantry",
+    labelEn: "Kitchen & Pantry",
+    projects: [
+      {
+        id: 501,
+        title: "ครัวบิ้วท์อิน Modern White",
+        category: "ครัวและ Pantry",
+        location: "สาทร, กรุงเทพฯ",
+        description: "ครัวบิ้วท์อิน 28 ตร.ม. วัสดุ Acrylic ขาวสลับไม้ Oak พร้อมท็อปหินควอตซ์ ระบบจัดเก็บอัจฉริยะในลิ้นชัก",
+        image: `${BASE}images/kitchen-modern-1.jpg`,
+      },
+      {
+        id: 502,
+        title: "Pantry Room และตู้เก็บเสบียง",
+        category: "ครัวและ Pantry",
+        location: "ศรีนครินทร์, กรุงเทพฯ",
+        description: "Pantry Room 6 ตร.ม. ระบบชั้นวาง Pull-out ทุกช่อง พร้อมตู้แบบ Floor-to-Ceiling และท็อปเคาน์เตอร์สำหรับเตรียมอาหาร",
+        image: `${BASE}images/kitchen-pantry-1.jpg`,
+      },
+      {
+        id: 503,
+        title: "ครัวสไตล์ Japandi โทน Warm",
+        category: "ครัวและ Pantry",
+        location: "เชียงใหม่",
+        description: "ครัวบิ้วท์อินสไตล์ Japandi ไม้ Teak โทน Warm Brown บานเรียบไร้มือจับ พร้อมผิว Linen บนเกาะกลาง",
+        image: `${BASE}images/kitchen-japandi-1.jpg`,
+      },
+    ],
   },
   {
-    id: 6,
-    title: "ร้าน Concept Store สยาม",
-    type: "Retail",
-    location: "กรุงเทพฯ",
-    description: "Concept Store แฟชั่น 320 ตร.ม. Display System งานศิลป์",
-    image: `${import.meta.env.BASE_URL}images/project-ret-1.png`,
-  }
+    id: "process",
+    label: "หน้างานและขั้นตอนผลิต",
+    labelEn: "Work in Progress & Production",
+    projects: [
+      {
+        id: 601,
+        title: "ขั้นตอนการผลิตในโรงงาน",
+        category: "หน้างานและขั้นตอนผลิต",
+        location: "โรงงาน Daybuilt, กรุงเทพฯ",
+        description: "ทุกชิ้นงานผ่านกระบวนการตัด CNC ความแม่นยำ 0.1 มม. ก่อนเข้าสู่ขั้นตอนพ่นสี อบ UV และ QC ทุกชิ้น",
+        image: `${BASE}images/process-factory-1.jpg`,
+      },
+      {
+        id: 602,
+        title: "ขั้นตอนติดตั้งหน้างาน",
+        category: "หน้างานและขั้นตอนผลิต",
+        location: "โครงการ Sukhumvit 21",
+        description: "ทีมช่างติดตั้งมืออาชีพ ดำเนินงานสะอาด ตรงเวลา ทุกงานมี Site Supervisor ดูแลตั้งแต่เริ่มจนส่งมอบ",
+        image: `${BASE}images/process-install-1.jpg`,
+      },
+      {
+        id: 603,
+        title: "ตรวจงานและส่งมอบ",
+        category: "หน้างานและขั้นตอนผลิต",
+        location: "โครงการ Lad Phrao",
+        description: "ขั้นตอนตรวจสอบคุณภาพก่อนส่งมอบ ทดสอบกลไกทุกบาน ปรับระดับ และทำความสะอาดพื้นที่ให้พร้อมเข้าอยู่",
+        image: `${BASE}images/process-handover-1.jpg`,
+      },
+    ],
+  },
 ];
 
-export default function Projects() {
-  const [filter, setFilter] = useState("ทั้งหมด");
-  const [selectedProject, setSelectedProject] = useState<typeof allProjects[0] | null>(null);
+// Anchor navigation labels
+const anchorLinks = sections.map((s) => ({ id: s.id, label: s.label }));
 
-  const filteredProjects = filter === "ทั้งหมด" 
-    ? allProjects 
-    : allProjects.filter(p => p.type === filter);
+export default function Projects() {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="w-full pt-24 min-h-screen bg-background">
       {/* Header */}
       <section className="py-16 bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
-          <motion.h1 
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-primary text-xs tracking-widest uppercase mb-4"
+          >
+            Portfolio
+          </motion.p>
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-serif mb-8"
+            className="text-4xl md:text-6xl font-serif mb-10"
           >
             ผลงานของเรา
           </motion.h1>
-          
-          {/* Filters */}
-          <motion.div 
+
+          {/* Section anchor links */}
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="flex flex-wrap gap-4"
+            className="flex flex-wrap gap-3"
           >
-            {categories.map((cat) => (
+            {anchorLinks.map((link) => (
               <button
-                key={cat}
-                onClick={() => setFilter(cat)}
-                className={`px-4 py-2 text-xs font-sans tracking-widest uppercase transition-all duration-300 border ${
-                  filter === cat 
-                    ? "bg-primary border-primary text-primary-foreground" 
-                    : "bg-transparent border-border text-muted-foreground hover:border-primary hover:text-foreground"
-                }`}
+                key={link.id}
+                onClick={() => scrollTo(link.id)}
+                className="px-4 py-2 text-xs font-sans tracking-widest uppercase transition-all duration-300 border border-border text-muted-foreground hover:border-primary hover:text-foreground"
               >
-                {cat}
+                {link.label}
               </button>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* Grid */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-6 md:px-12">
-          <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <AnimatePresence>
-              {filteredProjects.map((project) => (
+      {/* Sections */}
+      <div className="max-w-7xl mx-auto px-6 md:px-12">
+        {sections.map((section, sectionIdx) => (
+          <section
+            key={section.id}
+            id={section.id}
+            className="py-16 border-b border-border last:border-b-0"
+          >
+            {/* Section heading */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mb-10"
+            >
+              <p className="text-primary text-xs tracking-widest uppercase mb-2">
+                {String(sectionIdx + 1).padStart(2, "0")}
+              </p>
+              <h2 className="text-3xl md:text-4xl font-serif text-foreground">
+                {section.label}
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1 tracking-wide">
+                {section.labelEn}
+              </p>
+            </motion.div>
+
+            {/* Project grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {section.projects.map((project, idx) => (
                 <motion.div
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4 }}
                   key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.45, delay: idx * 0.08 }}
                   onClick={() => setSelectedProject(project)}
-                  className="group cursor-pointer block overflow-hidden bg-card border border-border"
+                  className="group cursor-pointer overflow-hidden bg-card border border-border"
                 >
-                  <div className="aspect-[4/3] overflow-hidden relative">
-                    <img 
-                      src={project.image} 
-                      alt={project.title} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  <div className="aspect-[4/3] overflow-hidden relative bg-muted">
+                    <img
+                      src={project.image}
+                      alt={project.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
-                    <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors duration-500" />
+                    <div className="absolute inset-0 bg-background/0 group-hover:bg-background/10 transition-colors duration-500" />
                   </div>
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="text-primary text-xs tracking-widest uppercase">{project.type}</p>
-                    </div>
-                    <h3 className="text-xl font-serif text-foreground mb-1">{project.title}</h3>
-                    <p className="text-sm text-muted-foreground">{project.location}</p>
+                  <div className="p-5">
+                    <h3 className="text-base font-serif text-foreground mb-1 group-hover:text-primary transition-colors">
+                      {project.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground tracking-wide">
+                      {project.location}
+                    </p>
                   </div>
                 </motion.div>
               ))}
-            </AnimatePresence>
-          </motion.div>
-
-          {filteredProjects.length === 0 && (
-            <div className="text-center py-24 text-muted-foreground">
-              ไม่พบโปรเจกต์ในหมวดหมู่นี้
             </div>
-          )}
-        </div>
-      </section>
+          </section>
+        ))}
+      </div>
 
       {/* Project Modal */}
-      <Dialog open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
+      <Dialog
+        open={!!selectedProject}
+        onOpenChange={(open) => !open && setSelectedProject(null)}
+      >
         <DialogContent className="max-w-4xl bg-card border-border p-0 overflow-hidden">
           {selectedProject && (
             <div className="flex flex-col md:flex-row h-full max-h-[85vh]">
-              <div className="w-full md:w-3/5 h-64 md:h-auto relative">
-                <img 
-                  src={selectedProject.image} 
-                  alt={selectedProject.title} 
+              <div className="w-full md:w-3/5 h-64 md:h-auto relative bg-muted">
+                <img
+                  src={selectedProject.image}
+                  alt={selectedProject.title}
                   className="w-full h-full object-cover absolute inset-0"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
               </div>
               <div className="w-full md:w-2/5 p-8 flex flex-col justify-center bg-card">
                 <DialogHeader className="text-left mb-6">
-                  <p className="text-primary text-xs tracking-widest uppercase mb-2">{selectedProject.type}</p>
-                  <DialogTitle className="text-3xl font-serif text-foreground mb-2">
+                  <p className="text-primary text-xs tracking-widest uppercase mb-2">
+                    {selectedProject.category}
+                  </p>
+                  <DialogTitle className="text-2xl font-serif text-foreground mb-2">
                     {selectedProject.title}
                   </DialogTitle>
                   <DialogDescription className="text-sm text-muted-foreground">
@@ -170,7 +344,7 @@ export default function Projects() {
                   {selectedProject.description}
                 </div>
                 <div className="mt-auto">
-                  <button 
+                  <button
                     onClick={() => setSelectedProject(null)}
                     className="text-xs uppercase tracking-widest border-b border-primary text-primary pb-1 hover:text-primary/80 transition-colors"
                   >
