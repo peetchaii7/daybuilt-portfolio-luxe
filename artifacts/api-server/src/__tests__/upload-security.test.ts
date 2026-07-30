@@ -20,6 +20,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import app from '../app';
 import { claimLeadForGeneration } from '../lib/generationService';
+import { ObjectStorageService } from '../lib/objectStorage';
 import { createUploadProof, MAX_UPLOAD_BYTES } from '../lib/uploadProof';
 
 const PNG_BYTES = Buffer.concat([
@@ -28,6 +29,7 @@ const PNG_BYTES = Buffer.concat([
 ]);
 
 const createdLeadIds: number[] = [];
+const uploadedObjectPaths: string[] = [];
 
 function designRequestId(): string {
   return `test-${randomUUID()}${randomUUID()}`;
@@ -60,6 +62,7 @@ async function uploadValidImage() {
     .set('content-type', 'image/png')
     .send(PNG_BYTES);
   expect(putRes.status).toBe(204);
+  uploadedObjectPaths.push(objectPath);
 
   return { uploadProof, objectPath };
 }
@@ -91,6 +94,19 @@ beforeAll(() => {
 afterAll(async () => {
   if (createdLeadIds.length > 0) {
     await db.delete(leadsTable).where(inArray(leadsTable.id, createdLeadIds));
+  }
+
+  // Delete every object the tests uploaded so runs don't accumulate
+  // orphaned files in real object storage.
+  const storage = new ObjectStorageService();
+  const results = await Promise.allSettled(
+    uploadedObjectPaths.map((path) => storage.deleteCustomerUpload(path)),
+  );
+  const failed = results.filter((r) => r.status === 'rejected');
+  if (failed.length > 0) {
+    throw new Error(
+      `Failed to clean up ${failed.length} test upload(s) from object storage`,
+    );
   }
 });
 

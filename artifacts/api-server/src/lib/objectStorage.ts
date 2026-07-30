@@ -281,6 +281,16 @@ export class ObjectStorageService {
     });
   }
 
+  /**
+   * Delete an uploaded customer object (`/objects/uploads/...`). Missing
+   * objects are treated as already deleted. Used by tests and cleanup
+   * routines to remove orphaned uploads.
+   */
+  async deleteCustomerUpload(objectPath: string): Promise<void> {
+    const file = await this.getObjectEntityFileReference(objectPath);
+    await file.delete({ ignoreNotFound: true });
+  }
+
   createCustomerUploadPath(): string {
     return `/objects/uploads/${randomUUID()}`;
   }
