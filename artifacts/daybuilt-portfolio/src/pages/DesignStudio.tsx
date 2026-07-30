@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { useSubmitLead } from "@workspace/api-client-react";
+import { useSubmitLead, useStartLeadGeneration } from "@workspace/api-client-react";
 import { useUpload } from "@workspace/object-storage-web";
-import { Check, X, Upload } from "lucide-react";
+import { Check, X, Upload, Loader2, AlertCircle } from "lucide-react";
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -69,7 +69,7 @@ const TIMELINE_OPTIONS = [
   "ยังไม่แน่ใจ",
 ];
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
 
@@ -113,7 +113,16 @@ export default function DesignStudio() {
 
   // Step 1 — Upload
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadProof, setUploadProof] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [designRequestId] = useState(() => {
+    const storageKey = "daybuilt_design_request_id";
+    const existing = sessionStorage.getItem(storageKey);
+    if (existing) return existing;
+    const created = `${crypto.randomUUID()}${crypto.randomUUID()}`;
+    sessionStorage.setItem(storageKey, created);
+    return created;
+  });
 
   // Step 2 — Room
   const [roomType, setRoomType] = useState("");
@@ -137,45 +146,69 @@ export default function DesignStudio() {
   const [phone, setPhone] = useState("");
   const [description, setDescription] = useState("");
 
+  // Step 7 — Generation state
+  const [leadId, setLeadId] = useState<number | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [generationError, setGenerationError] = useState("");
+
   // Errors
   const [fieldError, setFieldError] = useState("");
   const [submitError, setSubmitError] = useState("");
 
   // Upload hook
   const { uploadFile, isUploading, progress, error: uploadError } = useUpload({
-    onSuccess: (res: { objectPath: string; uploadURL: string; metadata: { name: string; size: number; contentType: string } }) => {
+    onSuccess: (res: { objectPath: string; uploadURL: string; uploadProof: string; metadata: { name: string; size: number; contentType: string } }) => {
       setImageUrl(res.objectPath);
+      setUploadProof(res.uploadProof);
     },
   });
 
   // Submit hook — mutate takes { data: LeadInput }
-  const { mutate, isPending } = useSubmitLead({
+  const submitLead = useSubmitLead({
     mutation: {
-      onSuccess: (data: { success: boolean; message: string; id: number }) => {
-        const budget = BUDGET_OPTIONS.find((b) => b.value === budgetValue);
-        const lead = {
-          name,
-          email,
-          phone,
-          description,
-          roomType,
-          roomSize,
-          builtInType: builtInTypes.join(", "),
-          style,
-          colorTone,
-          keepLayout,
-          timeline,
-          budgetMin: budget?.min ?? null,
-          budgetMax: budget?.max ?? null,
-          imageUrl,
-          id: data.id,
-        };
-        sessionStorage.setItem(`daybuilt_lead_${data.id}`, JSON.stringify(lead));
-        navigate(`/design-studio/summary/${data.id}`);
+      onSuccess: (data: { success: boolean; message: string; id: number; accessToken?: string }) => {
+        setLeadId(data.id);
+        if (data.accessToken) {
+          setAccessToken(data.accessToken);
+          sessionStorage.setItem(
+            `daybuilt_lead_${data.id}`,
+            JSON.stringify({ leadId: data.id, accessToken: data.accessToken }),
+          );
+        }
+        sessionStorage.removeItem("daybuilt_design_request_id");
+        setStep(7);
       },
       onError: (err: any) => {
         setSubmitError(err?.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
       },
+    },
+  });
+
+  // Generation hook
+  const startGeneration = useStartLeadGeneration({
+    mutation: {
+      onSuccess: (data) => {
+        if (accessToken) {
+          sessionStorage.setItem(
+            `daybuilt_lead_${data.leadId}`,
+            JSON.stringify({ leadId: data.leadId, accessToken }),
+          );
+          navigate(`/design-studio/summary/${data.leadId}`);
+        }
+      },
+      onError: (err: any) => {
+        const errorData = err?.data?.error || err?.message;
+        if (err?.status === 503) {
+          setGenerationError("ระบบ AI ยังไม่พร้อมให้บริการ กรุณาลองใหม่อีกครั้งในภายหลัง");
+        } else if (errorData) {
+          setGenerationError(errorData);
+        } else {
+          setGenerationError("เกิดข้อผิดพลาดในการสร้างภาพ กรุณาลองใหม่อีกครั้ง");
+        }
+      },
+    },
+    request: {
+      headers: accessToken ? { "x-design-token": accessToken } : {},
     },
   });
 
@@ -184,6 +217,13 @@ export default function DesignStudio() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setFieldError("กรุณาอัปโหลดไฟล์ jpg, png หรือ webp เท่านั้น");
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       setFieldError("ไฟล์ต้องมีขนาดไม่เกิน 10MB");
       return;
@@ -193,8 +233,15 @@ export default function DesignStudio() {
     await uploadFile(file);
   };
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleRemoveImage = () => {
     setImageUrl(null);
+    setUploadProof(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -203,6 +250,12 @@ export default function DesignStudio() {
 
   const goNext = () => {
     setFieldError("");
+    if (step === 1) {
+      if (!imageUrl || !uploadProof) {
+        setFieldError("กรุณาอัปโหลดรูปห้องของคุณ (จำเป็นสำหรับการสร้างภาพ AI)");
+        return;
+      }
+    }
     if (step === 2) {
       if (!roomType) { setFieldError("กรุณาเลือกประเภทห้อง"); return; }
       if (!roomSize) { setFieldError("กรุณาเลือกขนาดห้อง"); return; }
@@ -224,11 +277,13 @@ export default function DesignStudio() {
 
   const goBack = () => {
     setFieldError("");
+    setSubmitError("");
+    setGenerationError("");
     setStep((s) => s - 1);
   };
 
   const canContinue =
-    step === 1 ||
+    (step === 1 && Boolean(imageUrl)) ||
     (step === 2 && Boolean(roomType && roomSize)) ||
     (step === 3 && builtInTypes.length > 0) ||
     (step === 4 && Boolean(style && colorTone)) ||
@@ -242,9 +297,10 @@ export default function DesignStudio() {
     setSubmitError("");
     if (!name || name.trim().length < 2) { setFieldError("กรุณากรอกชื่อ (อย่างน้อย 2 ตัวอักษร)"); return; }
     if (!email || !email.includes("@")) { setFieldError("กรุณากรอกอีเมลให้ถูกต้อง"); return; }
+    if (!imageUrl || !uploadProof) { setFieldError("กรุณาอัปโหลดรูปห้อง"); return; }
 
     const budget = BUDGET_OPTIONS.find((b) => b.value === budgetValue);
-    mutate({
+    submitLead.mutate({
       data: {
         name: name.trim(),
         email: email.trim(),
@@ -260,9 +316,19 @@ export default function DesignStudio() {
         budgetMin: budget?.min,
         budgetMax: budget?.max || undefined,
         description: description.trim() || undefined,
-        imageUrl: imageUrl || undefined,
+        imageUrl: imageUrl,
+        uploadProof,
+        designRequestId,
       },
     });
+  };
+
+  // ─── Generate ──────────────────────────────────────────────────────────────
+
+  const handleGenerate = () => {
+    if (!leadId || !accessToken) return;
+    setGenerationError("");
+    startGeneration.mutate({ id: leadId });
   };
 
   // ─── Toggle built-in ──────────────────────────────────────────────────────
@@ -295,7 +361,9 @@ export default function DesignStudio() {
         <div className="text-center mb-10">
           <p className="text-[10px] tracking-[0.3em] text-[#c9a84c] uppercase mb-3">Design Studio</p>
           <h1 className="text-3xl md:text-4xl font-light tracking-wide">ออกแบบห้องของคุณ</h1>
-          <p className="text-sm text-white/40 mt-2">ตอบคำถามเพียง 6 ขั้นตอน — ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง</p>
+          <p className="text-sm text-white/40 mt-2">
+            {step < 7 ? "ตอบคำถามเพียง 7 ขั้นตอน — รับภาพ AI และทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง" : "กำลังสร้างภาพแนวคิดด้วย AI"}
+          </p>
         </div>
 
         <StepIndicator current={step} />
@@ -304,7 +372,7 @@ export default function DesignStudio() {
         {step === 1 && (
           <div>
             <h2 className="text-2xl font-light tracking-wide mb-2">อัปโหลดรูปห้องของคุณ</h2>
-            <p className="text-sm text-white/40 mb-8">ไม่บังคับ — ช่วยให้ทีมเข้าใจห้องได้ดีขึ้น (jpg / png / webp, max 10MB)</p>
+            <p className="text-sm text-white/40 mb-8">จำเป็นสำหรับการสร้างภาพ AI (jpg / png / webp, max 10MB)</p>
 
             {!previewUrl ? (
               <div
@@ -364,17 +432,12 @@ export default function DesignStudio() {
             {fieldError && <p className="text-red-400 text-sm mt-3">{fieldError}</p>}
 
             <div className={actionRow}>
+              <div></div>
               <button
                 type="button"
-                className="text-sm text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
-                onClick={() => { setStep(2); setFieldError(""); }}
-              >
-                ข้ามขั้นตอนนี้
-              </button>
-              <button
-                type="button"
+                data-testid="button-next-step1"
                 className={btnNext}
-                disabled={isUploading}
+                disabled={isUploading || !canContinue}
                 onClick={goNext}
               >
                 ถัดไป →
@@ -426,8 +489,8 @@ export default function DesignStudio() {
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
             <div className={actionRow}>
-              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
+              <button type="button" data-testid="button-back-step2" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" data-testid="button-next-step2" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -463,8 +526,8 @@ export default function DesignStudio() {
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
             <div className={actionRow}>
-              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
+              <button type="button" data-testid="button-back-step3" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" data-testid="button-next-step3" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -521,8 +584,8 @@ export default function DesignStudio() {
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
             <div className={actionRow}>
-              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
+              <button type="button" data-testid="button-back-step4" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" data-testid="button-next-step4" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -592,8 +655,8 @@ export default function DesignStudio() {
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
             <div className={actionRow}>
-              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
+              <button type="button" data-testid="button-back-step5" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" data-testid="button-next-step5" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -661,16 +724,109 @@ export default function DesignStudio() {
             {submitError && <p className="text-red-400 text-sm mt-4">{submitError}</p>}
 
             <div className={actionRow}>
-              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" data-testid="button-back-step6" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
               <button
                 type="submit"
-                disabled={isPending}
+                data-testid="button-submit-step6"
+                disabled={submitLead.isPending}
                 className={btnNext}
               >
-                {isPending ? "กำลังส่ง..." : "ส่งคำขอออกแบบ ✓"}
+                {submitLead.isPending ? "กำลังบันทึก..." : "บันทึกและดำเนินการต่อ →"}
               </button>
             </div>
           </form>
+        )}
+
+        {/* ── STEP 7: Generate Design ─────────────────────────────────────── */}
+        {step === 7 && (
+          <div>
+            <h2 className="text-2xl font-light tracking-wide mb-2">สร้างภาพแนวคิดด้วย AI</h2>
+            <p className="text-sm text-white/40 mb-8">
+              ระบบจะใช้ข้อมูลที่คุณให้มาเพื่อสร้างภาพ Concept Design ตามสไตล์และโทนสีที่เลือก
+            </p>
+
+            <div className="border border-white/10 bg-[#0f0f0f] p-8 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">สไตล์</p>
+                  <p className="text-sm text-white">{style}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">โทนสี</p>
+                  <p className="text-sm text-white">{colorTone}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">ประเภทห้อง</p>
+                  <p className="text-sm text-white">{roomType}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">งานบิวท์อิน</p>
+                  <p className="text-sm text-white">{builtInTypes.join(", ")}</p>
+                </div>
+              </div>
+
+              {previewUrl && (
+                <div className="mt-4">
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">รูปห้องต้นฉบับ</p>
+                  <img
+                    src={previewUrl}
+                    alt="Room preview"
+                    className="max-h-48 max-w-full object-cover border border-white/10"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="border border-white/10 bg-[#111] p-6 mb-6">
+              <p className="text-xs text-white/50 leading-relaxed mb-3">
+                การสร้างภาพอาจใช้เวลา 30-60 วินาที กรุณารอจนกว่าจะเสร็จสมบูรณ์
+              </p>
+              <p className="text-[10px] text-white/30 tracking-wide">
+                AI Concept Preview — not final construction drawing
+              </p>
+              <p className="mt-1 text-[10px] text-white/30 tracking-wide">
+                ภาพแนวคิดจาก AI ไม่ใช่แบบก่อสร้างขั้นสุดท้าย
+              </p>
+            </div>
+
+            {generationError && (
+              <div className="border border-red-500/30 bg-red-500/5 p-5 mb-6 flex items-start gap-3" data-testid="text-generation-error">
+                <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-red-400 mb-1 font-medium">เกิดข้อผิดพลาด</p>
+                  <p className="text-xs text-red-300/80">{generationError}</p>
+                </div>
+              </div>
+            )}
+
+            <div className={actionRow}>
+              <button
+                type="button"
+                data-testid="button-back-step7"
+                className={btnBack}
+                disabled
+                title="ข้อมูลคำขอนี้ถูกบันทึกแล้ว"
+              >
+                ข้อมูลบันทึกแล้ว
+              </button>
+              <button
+                type="button"
+                data-testid="button-generate"
+                disabled={startGeneration.isPending || !leadId || !accessToken}
+                className={btnNext}
+                onClick={handleGenerate}
+              >
+                {startGeneration.isPending ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <Loader2 size={16} className="animate-spin" />
+                    กำลังสร้างภาพ...
+                  </span>
+                ) : (
+                  "สร้างภาพแนวคิด AI →"
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

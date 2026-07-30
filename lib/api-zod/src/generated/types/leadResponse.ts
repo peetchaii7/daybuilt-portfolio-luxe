@@ -10,4 +10,7 @@ export interface LeadResponse {
   success: boolean;
   message: string;
   id: number;
+  /** One-time anonymous access token for the design-studio AI generation endpoints. Returned only for source=design-studio and never retrievable again. Send it in the x-design-token header.
+   */
+  accessToken?: string;
 }

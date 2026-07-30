@@ -37,12 +37,22 @@ export interface LeadInput {
   keepLayout?: string;
   timeline?: string;
   projectType?: string;
+  /**
+   * @minLength 32
+   * @maxLength 200
+   */
+  designRequestId?: string;
+  /** @minLength 32 */
+  uploadProof?: string;
 }
 
 export interface LeadResponse {
   success: boolean;
   message: string;
   id: number;
+  /** One-time anonymous access token for the design-studio AI generation endpoints. Returned only for source=design-studio and never retrievable again. Send it in the x-design-token header.
+   */
+  accessToken?: string;
 }
 
 export interface LeadRecord {
@@ -67,6 +77,23 @@ export interface LeadRecord {
   projectType?: string | null;
   notes?: string | null;
   createdAt: string;
+  /** pending | processing | completed | failed */
+  aiStatus?: string | null;
+  aiPromptSummary?: string | null;
+  aiProvider?: string | null;
+  aiModel?: string | null;
+  aiAttempts?: number | null;
+  aiError?: string | null;
+  /** Admin-only diagnostic detail */
+  aiErrorDetail?: string | null;
+  aiStartedAt?: string | null;
+  aiCompletedAt?: string | null;
+  aiUpdatedAt?: string | null;
+  hasGeneratedImage?: boolean | null;
+  /** Protected API URL for the generated render */
+  generatedImageUrl?: string | null;
+  /** Protected API URL for the customer's uploaded photo */
+  sourceImageUrl?: string | null;
 }
 
 export interface LeadsListResponse {
@@ -88,18 +115,105 @@ export interface UpdateLeadStatusInput {
   notes?: string;
 }
 
+/**
+ * Customer-safe echo of the selections used to build the design.
+ */
+export interface GenerationSelections {
+  roomType?: string | null;
+  roomSize?: string | null;
+  builtInType?: string | null;
+  style?: string | null;
+  colorTone?: string | null;
+  keepLayout?: string | null;
+  timeline?: string | null;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
+  description?: string | null;
+}
+
+export type GenerationStatusResponseStatus =
+  (typeof GenerationStatusResponseStatus)[keyof typeof GenerationStatusResponseStatus];
+
+export const GenerationStatusResponseStatus = {
+  pending: "pending",
+  processing: "processing",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+/**
+ * Customer-facing generation state. Never contains the exact prompt, raw object paths, token hashes, or admin diagnostics.
+
+ */
+export interface GenerationStatusResponse {
+  leadId: number;
+  status: GenerationStatusResponseStatus;
+  conceptSummary?: string | null;
+  generatedImageUrl?: string | null;
+  sourceImageUrl?: string | null;
+  error?: string | null;
+  attempts: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  updatedAt?: string | null;
+  selections: GenerationSelections;
+}
+
+export type AdminGenerationStatusResponseStatus =
+  (typeof AdminGenerationStatusResponseStatus)[keyof typeof AdminGenerationStatusResponseStatus];
+
+export const AdminGenerationStatusResponseStatus = {
+  pending: "pending",
+  processing: "processing",
+  completed: "completed",
+  failed: "failed",
+} as const;
+
+/**
+ * Admin view of generation state, including diagnostics.
+ */
+export interface AdminGenerationStatusResponse {
+  leadId: number;
+  status: AdminGenerationStatusResponseStatus;
+  conceptSummary?: string | null;
+  generatedImageUrl?: string | null;
+  sourceImageUrl?: string | null;
+  error?: string | null;
+  errorDetail?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  attempts: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export type UploadUrlRequestContentType =
+  (typeof UploadUrlRequestContentType)[keyof typeof UploadUrlRequestContentType];
+
+export const UploadUrlRequestContentType = {
+  "image/jpeg": "image/jpeg",
+  "image/jpg": "image/jpg",
+  "image/png": "image/png",
+  "image/webp": "image/webp",
+} as const;
+
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;
-  /** @minimum 1 */
+  /**
+   * @minimum 1
+   * @maximum 10485760
+   */
   size: number;
-  /** @minLength 1 */
-  contentType: string;
+  contentType: UploadUrlRequestContentType;
 }
 
 export interface UploadUrlResponse {
   uploadURL: string;
   objectPath: string;
+  uploadToken: string;
+  uploadProof: string;
 }
 
 export interface ErrorResponse {

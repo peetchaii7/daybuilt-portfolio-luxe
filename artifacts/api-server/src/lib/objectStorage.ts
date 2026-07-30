@@ -9,6 +9,7 @@ import {
   ObjectPermission,
   setObjectAclPolicy,
 } from './objectAcl';
+import { MAX_UPLOAD_BYTES, type UploadProofClaims } from './uploadProof';
 
 const REPLIT_SIDECAR_ENDPOINT = 'http://127.0.0.1:1106';
 
@@ -29,6 +30,46 @@ export const objectStorageClient = new Storage({
   },
   projectId: '',
 });
+
+/**
+ * Content types accepted for customer room photo uploads and for anything we
+ * are willing to hand to the image model / stream back from private storage.
+ */
+export const ALLOWED_IMAGE_CONTENT_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+] as const;
+
+export function isAllowedImageContentType(
+  contentType: string | null | undefined,
+): boolean {
+  if (!contentType) {
+    return false;
+  }
+  const normalized = contentType.split(';')[0].trim().toLowerCase();
+  return (ALLOWED_IMAGE_CONTENT_TYPES as readonly string[]).includes(
+    normalized,
+  );
+}
+
+export function extensionForImageContentType(
+  contentType: string | null | undefined,
+): string {
+  const normalized = (contentType ?? '').split(';')[0].trim().toLowerCase();
+  switch (normalized) {
+    case 'image/png':
+      return 'png';
+    case 'image/webp':
+      return 'webp';
+    case 'image/jpeg':
+    case 'image/jpg':
+      return 'jpg';
+    default:
+      return 'bin';
+  }
+}
 
 export class ObjectNotFoundError extends Error {
   constructor() {
@@ -111,6 +152,113 @@ export class ObjectStorageService {
     return new Response(webStream, { headers });
   }
 
+  /**
+   * Download a private object into memory. Used for handing the customer's
+   * room photo to the image model.
+   */
+  async downloadObjectBuffer(
+    objectPath: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    const file = await this.getObjectEntityFile(objectPath);
+    const [metadata] = await file.getMetadata();
+    const contentType =
+      (metadata.contentType as string | undefined) ??
+      'application/octet-stream';
+    const size = Number(metadata.size ?? 0);
+    if (!Number.isFinite(size) || size < 1 || size > MAX_UPLOAD_BYTES) {
+      throw new Error('Source image exceeds the allowed size');
+    }
+    const [buffer] = await file.download();
+    if (buffer.length < 1 || buffer.length > MAX_UPLOAD_BYTES) {
+      throw new Error('Source image exceeds the allowed size');
+    }
+    return { buffer, contentType };
+  }
+
+  async validateCustomerUpload(claims: UploadProofClaims): Promise<boolean> {
+    try {
+      const file = await this.getObjectEntityFile(claims.objectPath);
+      const [metadata] = await file.getMetadata();
+      const actualType = String(metadata.contentType ?? '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+      const expectedType = claims.contentType.split(';')[0].trim().toLowerCase();
+      const actualSize = Number(metadata.size ?? 0);
+      return (
+        isAllowedImageContentType(actualType) &&
+        actualType === expectedType &&
+        actualSize === claims.size &&
+        actualSize > 0 &&
+        actualSize <= MAX_UPLOAD_BYTES
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  async uploadCustomerObject(
+    claims: UploadProofClaims,
+    buffer: Buffer,
+  ): Promise<void> {
+    if (
+      buffer.length !== claims.size ||
+      buffer.length < 1 ||
+      buffer.length > MAX_UPLOAD_BYTES ||
+      !isAllowedImageContentType(claims.contentType)
+    ) {
+      throw new Error('Upload does not match the approved metadata');
+    }
+    const file = await this.getObjectEntityFileReference(claims.objectPath);
+    await file.save(buffer, {
+      contentType: claims.contentType,
+      resumable: false,
+      validation: 'crc32c',
+    });
+  }
+
+  /**
+   * Upload bytes to the private object dir and return the normalized
+   * `/objects/...` entity path. The raw bucket path is never returned.
+   */
+  async uploadObjectBuffer({
+    buffer,
+    contentType,
+    keyPrefix,
+    extension,
+  }: {
+    buffer: Buffer;
+    contentType: string;
+    keyPrefix: string;
+    extension: string;
+  }): Promise<string> {
+    if (!isAllowedImageContentType(contentType)) {
+      throw new Error(`Unsupported content type: ${contentType}`);
+    }
+
+    let privateObjectDir = this.getPrivateObjectDir();
+    if (privateObjectDir.endsWith('/')) {
+      privateObjectDir = privateObjectDir.slice(0, -1);
+    }
+
+    const normalizedPrefix = keyPrefix.replace(/^\/+|\/+$/g, '');
+    const objectId = randomUUID();
+    const fullPath = `${privateObjectDir}/${normalizedPrefix}/${objectId}.${extension}`;
+
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const file = objectStorageClient.bucket(bucketName).file(objectName);
+    await file.save(buffer, {
+      contentType,
+      resumable: false,
+    });
+
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith('/')) {
+      entityDir = `${entityDir}/`;
+    }
+    return `/objects/${fullPath.slice(entityDir.length)}`;
+  }
+
   async getObjectEntityUploadURL(): Promise<string> {
     const privateObjectDir = this.getPrivateObjectDir();
     if (!privateObjectDir) {
@@ -131,6 +279,21 @@ export class ObjectStorageService {
       method: 'PUT',
       ttlSec: 900,
     });
+  }
+
+  createCustomerUploadPath(): string {
+    return `/objects/uploads/${randomUUID()}`;
+  }
+
+  private async getObjectEntityFileReference(objectPath: string): Promise<File> {
+    if (!objectPath.startsWith('/objects/uploads/')) {
+      throw new ObjectNotFoundError();
+    }
+    const entityId = objectPath.slice('/objects/'.length);
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith('/')) entityDir = `${entityDir}/`;
+    const { bucketName, objectName } = parseObjectPath(`${entityDir}${entityId}`);
+    return objectStorageClient.bucket(bucketName).file(objectName);
   }
 
   async getObjectEntityFile(objectPath: string): Promise<File> {

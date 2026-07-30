@@ -5,12 +5,15 @@
  * Daybuilt API
  * OpenAPI spec version: 0.3.0
  */
+import type { UploadUrlRequestContentType } from "./uploadUrlRequestContentType";
 
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;
-  /** @minimum 1 */
+  /**
+   * @minimum 1
+   * @maximum 10485760
+   */
   size: number;
-  /** @minLength 1 */
-  contentType: string;
+  contentType: UploadUrlRequestContentType;
 }

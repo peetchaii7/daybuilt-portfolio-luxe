@@ -10,6 +10,8 @@ interface UploadMetadata {
 interface UploadResponse {
   uploadURL: string;
   objectPath: string;
+  uploadToken: string;
+  uploadProof: string;
   metadata: UploadMetadata;
 }
 
@@ -84,12 +86,13 @@ export function useUpload(options: UseUploadOptions = {}) {
   );
 
   const uploadToPresignedUrl = useCallback(
-    async (file: File, uploadURL: string): Promise<void> => {
+    async (file: File, uploadURL: string, uploadToken: string): Promise<void> => {
       const response = await fetch(uploadURL, {
         method: 'PUT',
         body: file,
         headers: {
           'Content-Type': file.type || 'application/octet-stream',
+          'x-upload-token': uploadToken,
         },
       });
 
@@ -111,7 +114,11 @@ export function useUpload(options: UseUploadOptions = {}) {
         const uploadResponse = await requestUploadUrl(file);
 
         setProgress(30);
-        await uploadToPresignedUrl(file, uploadResponse.uploadURL);
+        await uploadToPresignedUrl(
+          file,
+          uploadResponse.uploadURL,
+          uploadResponse.uploadToken,
+        );
 
         setProgress(100);
         options.onSuccess?.(uploadResponse);
@@ -157,6 +164,14 @@ export function useUpload(options: UseUploadOptions = {}) {
         method: 'PUT',
         url: data.uploadURL,
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        // Uppy uploads use the same proof as the direct upload flow.
+        // Header values are not placed in URLs or logs.
+        ...(data.uploadToken
+          ? { headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+              'x-upload-token': data.uploadToken,
+            } }
+          : {}),
       };
     },
     [],

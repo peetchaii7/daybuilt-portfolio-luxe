@@ -16,10 +16,16 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * Unified lead from contact form, estimator, or design studio
+ * Unified lead from contact form, estimator, or design studio. For source=design-studio the room photo and all design preferences are required, and the response includes a one-time accessToken.
+
  * @summary Submit a new lead
  */
 export const submitLeadBodyNameMin = 2;
+
+export const submitLeadBodyDesignRequestIdMin = 32;
+export const submitLeadBodyDesignRequestIdMax = 200;
+
+export const submitLeadBodyUploadProofMin = 32;
 
 export const SubmitLeadBody = zod.object({
   name: zod.string().min(submitLeadBodyNameMin),
@@ -39,6 +45,12 @@ export const SubmitLeadBody = zod.object({
   keepLayout: zod.string().optional(),
   timeline: zod.string().optional(),
   projectType: zod.string().optional(),
+  designRequestId: zod
+    .string()
+    .min(submitLeadBodyDesignRequestIdMin)
+    .max(submitLeadBodyDesignRequestIdMax)
+    .optional(),
+  uploadProof: zod.string().min(submitLeadBodyUploadProofMin).optional(),
 });
 
 /**
@@ -73,6 +85,31 @@ export const GetLeadsResponse = zod.object({
       projectType: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.date(),
+      aiStatus: zod
+        .string()
+        .nullish()
+        .describe("pending | processing | completed | failed"),
+      aiPromptSummary: zod.string().nullish(),
+      aiProvider: zod.string().nullish(),
+      aiModel: zod.string().nullish(),
+      aiAttempts: zod.number().nullish(),
+      aiError: zod.string().nullish(),
+      aiErrorDetail: zod
+        .string()
+        .nullish()
+        .describe("Admin-only diagnostic detail"),
+      aiStartedAt: zod.date().nullish(),
+      aiCompletedAt: zod.date().nullish(),
+      aiUpdatedAt: zod.date().nullish(),
+      hasGeneratedImage: zod.boolean().nullish(),
+      generatedImageUrl: zod
+        .string()
+        .nullish()
+        .describe("Protected API URL for the generated render"),
+      sourceImageUrl: zod
+        .string()
+        .nullish()
+        .describe("Protected API URL for the customer's uploaded photo"),
     }),
   ),
 });
@@ -115,21 +152,186 @@ export const UpdateLeadStatusResponse = zod.object({
   projectType: zod.string().nullish(),
   notes: zod.string().nullish(),
   createdAt: zod.date(),
+  aiStatus: zod
+    .string()
+    .nullish()
+    .describe("pending | processing | completed | failed"),
+  aiPromptSummary: zod.string().nullish(),
+  aiProvider: zod.string().nullish(),
+  aiModel: zod.string().nullish(),
+  aiAttempts: zod.number().nullish(),
+  aiError: zod.string().nullish(),
+  aiErrorDetail: zod
+    .string()
+    .nullish()
+    .describe("Admin-only diagnostic detail"),
+  aiStartedAt: zod.date().nullish(),
+  aiCompletedAt: zod.date().nullish(),
+  aiUpdatedAt: zod.date().nullish(),
+  hasGeneratedImage: zod.boolean().nullish(),
+  generatedImageUrl: zod
+    .string()
+    .nullish()
+    .describe("Protected API URL for the generated render"),
+  sourceImageUrl: zod
+    .string()
+    .nullish()
+    .describe("Protected API URL for the customer's uploaded photo"),
+});
+
+/**
+ * Starts the AI room render for a design-studio lead. Requires the one-time customer access token issued by POST /leads, sent in the x-design-token header. Generation runs inside the request lifecycle; the response reflects the final persisted state.
+
+ * @summary Start AI design generation for a design-studio lead
+ */
+export const StartLeadGenerationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const StartLeadGenerationHeader = zod.object({
+  "x-design-token": zod.string(),
+});
+
+export const StartLeadGenerationResponse = zod
+  .object({
+    leadId: zod.number(),
+    status: zod.enum(["pending", "processing", "completed", "failed"]),
+    conceptSummary: zod.string().nullish(),
+    generatedImageUrl: zod.string().nullish(),
+    sourceImageUrl: zod.string().nullish(),
+    error: zod.string().nullish(),
+    attempts: zod.number(),
+    startedAt: zod.date().nullish(),
+    completedAt: zod.date().nullish(),
+    updatedAt: zod.date().nullish(),
+    selections: zod
+      .object({
+        roomType: zod.string().nullish(),
+        roomSize: zod.string().nullish(),
+        builtInType: zod.string().nullish(),
+        style: zod.string().nullish(),
+        colorTone: zod.string().nullish(),
+        keepLayout: zod.string().nullish(),
+        timeline: zod.string().nullish(),
+        budgetMin: zod.number().nullish(),
+        budgetMax: zod.number().nullish(),
+        description: zod.string().nullish(),
+      })
+      .describe(
+        "Customer-safe echo of the selections used to build the design.",
+      ),
+  })
+  .describe(
+    "Customer-facing generation state. Never contains the exact prompt, raw object paths, token hashes, or admin diagnostics.\n",
+  );
+
+/**
+ * @summary Get AI design generation state
+ */
+export const GetLeadGenerationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetLeadGenerationHeader = zod.object({
+  "x-design-token": zod.string(),
+});
+
+export const GetLeadGenerationResponse = zod
+  .object({
+    leadId: zod.number(),
+    status: zod.enum(["pending", "processing", "completed", "failed"]),
+    conceptSummary: zod.string().nullish(),
+    generatedImageUrl: zod.string().nullish(),
+    sourceImageUrl: zod.string().nullish(),
+    error: zod.string().nullish(),
+    attempts: zod.number(),
+    startedAt: zod.date().nullish(),
+    completedAt: zod.date().nullish(),
+    updatedAt: zod.date().nullish(),
+    selections: zod
+      .object({
+        roomType: zod.string().nullish(),
+        roomSize: zod.string().nullish(),
+        builtInType: zod.string().nullish(),
+        style: zod.string().nullish(),
+        colorTone: zod.string().nullish(),
+        keepLayout: zod.string().nullish(),
+        timeline: zod.string().nullish(),
+        budgetMin: zod.number().nullish(),
+        budgetMax: zod.number().nullish(),
+        description: zod.string().nullish(),
+      })
+      .describe(
+        "Customer-safe echo of the selections used to build the design.",
+      ),
+  })
+  .describe(
+    "Customer-facing generation state. Never contains the exact prompt, raw object paths, token hashes, or admin diagnostics.\n",
+  );
+
+/**
+ * Admin-only retry. Allowed when the generation failed, or when a processing run is stale (older than the generation timeout).
+
+ * @summary Retry a failed AI generation (admin)
+ */
+export const RetryLeadGenerationParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RetryLeadGenerationHeader = zod.object({
+  "x-admin-key": zod.string(),
+});
+
+export const RetryLeadGenerationResponse = zod
+  .object({
+    leadId: zod.number(),
+    status: zod.enum(["pending", "processing", "completed", "failed"]),
+    conceptSummary: zod.string().nullish(),
+    generatedImageUrl: zod.string().nullish(),
+    sourceImageUrl: zod.string().nullish(),
+    error: zod.string().nullish(),
+    errorDetail: zod.string().nullish(),
+    provider: zod.string().nullish(),
+    model: zod.string().nullish(),
+    attempts: zod.number(),
+    startedAt: zod.date().nullish(),
+    completedAt: zod.date().nullish(),
+    updatedAt: zod.date().nullish(),
+  })
+  .describe("Admin view of generation state, including diagnostics.");
+
+/**
+ * Streams the customer's uploaded room photo (source) or the AI generated render (generated). Requires either the customer x-design-token or the admin x-admin-key header.
+
+ * @summary Serve a protected lead image
+ */
+export const GetLeadImageParams = zod.object({
+  id: zod.coerce.number(),
+  kind: zod.enum(["source", "generated"]),
+});
+
+export const GetLeadImageHeader = zod.object({
+  "x-design-token": zod.string().optional(),
+  "x-admin-key": zod.string().optional(),
 });
 
 /**
  * @summary Request a presigned URL for file upload
  */
 
+export const requestUploadUrlBodySizeMax = 10485760;
+
 export const RequestUploadUrlBody = zod.object({
   name: zod.string().min(1),
-  size: zod.number().min(1),
-  contentType: zod.string().min(1),
+  size: zod.number().min(1).max(requestUploadUrlBodySizeMax),
+  contentType: zod.enum(["image/jpeg", "image/jpg", "image/png", "image/webp"]),
 });
 
 export const RequestUploadUrlResponse = zod.object({
-  uploadURL: zod.string().url(),
+  uploadURL: zod.string(),
   objectPath: zod.string(),
+  uploadToken: zod.string(),
+  uploadProof: zod.string(),
 });
 
 /**
@@ -140,7 +342,9 @@ export const GetPublicObjectParams = zod.object({
 });
 
 /**
- * @summary Serve an uploaded object
+ * Private objects are never served by this generic route. Customer room photos and AI renders are only available through GET /leads/{id}/images/{kind} with a valid credential.
+
+ * @summary Private object reads are not served here
  */
 export const GetStorageObjectParams = zod.object({
   objectPath: zod.coerce.string(),

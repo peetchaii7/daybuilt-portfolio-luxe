@@ -1,0 +1,1 @@
+- [Customer upload validation](customer-upload-validation.md) — signed object URLs do not enforce declared metadata; validate anonymous uploads at the app boundary.

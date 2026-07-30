@@ -3,29 +3,24 @@ import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from '@workspace/api-zod';
-import { Router, type IRouter, type Request, type Response } from 'express';
-
-import { ObjectPermission } from '../lib/objectAcl';
 import {
-  ObjectNotFoundError,
-  ObjectStorageService,
-} from '../lib/objectStorage';
+  raw,
+  Router,
+  type IRouter,
+  type Request,
+  type Response,
+} from 'express';
+
+import { ObjectStorageService } from '../lib/objectStorage';
+import {
+  createUploadProof,
+  isUploadProofConfigured,
+  MAX_UPLOAD_BYTES,
+  verifyUploadProof,
+} from '../lib/uploadProof';
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-
-function hasAuthenticatedSession(
-  req: Request,
-): req is Request & { isAuthenticated: () => boolean } {
-  if (
-    !('isAuthenticated' in req) ||
-    typeof req.isAuthenticated !== 'function'
-  ) {
-    return false;
-  }
-
-  return req.isAuthenticated();
-}
 
 /**
  * POST /storage/uploads/request-url
@@ -33,36 +28,81 @@ function hasAuthenticatedSession(
  * Request a presigned URL for file upload.
  * The client sends JSON metadata (name, size, contentType) — NOT the file.
  * Then uploads the file directly to the returned presigned URL.
- * Requires auth middleware so public callers cannot mint write-capable URLs.
+ *
+ * Design Studio customers are anonymous, so this write path stays public. It is
+ * kept safe by tight validation (jpg/png/webp only, <= 10MB) and by the short
+ * 15-minute TTL on the signed URL. Reads of the resulting object are NOT
+ * public — see GET /leads/:id/images/:kind.
  */
 router.post(
   '/storage/uploads/request-url',
   async (req: Request, res: Response) => {
-    // Public endpoint — customers upload room photos as part of Design Studio form.
-    // No auth required here; the file path is stored in the leads table as metadata.
     const parsed = RequestUploadUrlBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Missing or invalid required fields' });
+      req.log.warn(
+        { issues: parsed.error.issues.length },
+        'Rejected upload URL request',
+      );
+      res.status(400).json({
+        error:
+          'Invalid upload request: only JPG, PNG or WebP images up to 10MB are allowed',
+      });
       return;
     }
 
     try {
       const { name, size, contentType } = parsed.data;
 
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath =
-        objectStorageService.normalizeObjectEntityPath(uploadURL);
+      if (!isUploadProofConfigured()) {
+        req.log.error('SESSION_SECRET is not configured; refusing upload');
+        res.status(503).json({ error: 'Upload service is not configured' });
+        return;
+      }
+      const objectPath = objectStorageService.createCustomerUploadPath();
+      const uploadProof = createUploadProof({
+        objectPath,
+        size,
+        contentType,
+      });
 
       res.json(
         RequestUploadUrlResponse.parse({
-          uploadURL,
+          uploadURL: '/api/storage/uploads',
           objectPath,
+          uploadToken: uploadProof,
+          uploadProof,
           metadata: { name, size, contentType },
         }),
       );
     } catch (error) {
       req.log.error({ err: error }, 'Error generating upload URL');
       res.status(500).json({ error: 'Failed to generate upload URL' });
+    }
+  },
+);
+
+router.put(
+  '/storage/uploads',
+  raw({ type: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'], limit: MAX_UPLOAD_BYTES }),
+  async (req: Request, res: Response) => {
+    const proof = verifyUploadProof(req.headers['x-upload-token']);
+    if (!proof) {
+      res.status(401).json({ error: 'Invalid or expired upload token' });
+      return;
+    }
+    const requestType = String(req.headers['content-type'] ?? '')
+      .split(';')[0]
+      .trim()
+      .toLowerCase();
+    if (requestType !== proof.contentType || !Buffer.isBuffer(req.body)) {
+      res.status(400).json({ error: 'Upload metadata does not match' });
+      return;
+    }
+    try {
+      await objectStorageService.uploadCustomerObject(proof, req.body);
+      res.status(204).end();
+    } catch {
+      res.status(400).json({ error: 'Invalid image upload' });
     }
   },
 );
@@ -109,55 +149,15 @@ router.get(
 /**
  * GET /storage/objects/*
  *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
+ * Private objects are NEVER served from this generic route. Customer room
+ * photos and AI renders live in PRIVATE_OBJECT_DIR and are only readable via
+ * GET /leads/:id/images/:kind, which requires the customer design token or the
+ * admin key. Anonymous reads here always 404 so the route cannot be used to
+ * enumerate or exfiltrate uploads.
  */
-router.get('/storage/objects/*path', async (req: Request, res: Response) => {
-  try {
-    const raw = req.params.path;
-    const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
-    const objectPath = `/objects/${wildcardPath}`;
-    const objectFile =
-      await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
-
-    const response = await objectStorageService.downloadObject(objectFile);
-
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-
-    if (response.body) {
-      const nodeStream = Readable.fromWeb(
-        response.body as ReadableStream<Uint8Array>,
-      );
-      nodeStream.pipe(res);
-    } else {
-      res.end();
-    }
-  } catch (error) {
-    if (error instanceof ObjectNotFoundError) {
-      req.log.warn({ err: error }, 'Object not found');
-      res.status(404).json({ error: 'Object not found' });
-      return;
-    }
-    req.log.error({ err: error }, 'Error serving object');
-    res.status(500).json({ error: 'Failed to serve object' });
-  }
+router.get('/storage/objects/*path', (req: Request, res: Response) => {
+  req.log.warn('Blocked unauthenticated private object read');
+  res.status(404).json({ error: 'Object not found' });
 });
 
 export default router;

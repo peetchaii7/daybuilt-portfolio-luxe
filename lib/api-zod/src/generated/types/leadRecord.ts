@@ -28,4 +28,21 @@ export interface LeadRecord {
   projectType?: string | null;
   notes?: string | null;
   createdAt: Date;
+  /** pending | processing | completed | failed */
+  aiStatus?: string | null;
+  aiPromptSummary?: string | null;
+  aiProvider?: string | null;
+  aiModel?: string | null;
+  aiAttempts?: number | null;
+  aiError?: string | null;
+  /** Admin-only diagnostic detail */
+  aiErrorDetail?: string | null;
+  aiStartedAt?: Date | null;
+  aiCompletedAt?: Date | null;
+  aiUpdatedAt?: Date | null;
+  hasGeneratedImage?: boolean | null;
+  /** Protected API URL for the generated render */
+  generatedImageUrl?: string | null;
+  /** Protected API URL for the customer's uploaded photo */
+  sourceImageUrl?: string | null;
 }

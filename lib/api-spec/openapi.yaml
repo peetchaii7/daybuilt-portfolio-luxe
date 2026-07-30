@@ -11,6 +11,8 @@ tags:
     description: Health operations
   - name: leads
     description: Unified lead management
+  - name: generation
+    description: AI design generation for design-studio leads
   - name: storage
     description: Object storage upload and serving endpoints
 paths:
@@ -32,7 +34,10 @@ paths:
       operationId: submitLead
       tags: [leads]
       summary: Submit a new lead
-      description: Unified lead from contact form, estimator, or design studio
+      description: >
+        Unified lead from contact form, estimator, or design studio.
+        For source=design-studio the room photo and all design preferences are
+        required, and the response includes a one-time accessToken.
       requestBody:
         required: true
         content:
@@ -123,6 +128,207 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /leads/{id}/generation:
+    post:
+      operationId: startLeadGeneration
+      tags: [generation]
+      summary: Start AI design generation for a design-studio lead
+      description: >
+        Starts the AI room render for a design-studio lead. Requires the
+        one-time customer access token issued by POST /leads, sent in the
+        x-design-token header. Generation runs inside the request lifecycle;
+        the response reflects the final persisted state.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-design-token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generation state (already completed, in progress, or finished now)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationStatusResponse"
+        "400":
+          description: Lead is not eligible for generation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Lead not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Generation already in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationStatusResponse"
+        "503":
+          description: AI generation is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: getLeadGeneration
+      tags: [generation]
+      summary: Get AI design generation state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-design-token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generation state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationStatusResponse"
+        "401":
+          description: Missing or invalid access token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Lead not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /leads/{id}/generation/retry:
+    post:
+      operationId: retryLeadGeneration
+      tags: [generation]
+      summary: Retry a failed AI generation (admin)
+      description: >
+        Admin-only retry. Allowed when the generation failed, or when a
+        processing run is stale (older than the generation timeout).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: x-admin-key
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generation state after the retry attempt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminGenerationStatusResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Lead not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Generation is not in a retryable state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminGenerationStatusResponse"
+        "503":
+          description: Admin access or AI generation is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /leads/{id}/images/{kind}:
+    get:
+      operationId: getLeadImage
+      tags: [generation]
+      summary: Serve a protected lead image
+      description: >
+        Streams the customer's uploaded room photo (source) or the AI generated
+        render (generated). Requires either the customer x-design-token or the
+        admin x-admin-key header.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [source, generated]
+        - name: x-design-token
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: x-admin-key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Image content
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "401":
+          description: Missing or invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /storage/uploads/request-url:
     post:
       tags: [storage]
@@ -182,7 +388,11 @@ paths:
     get:
       tags: [storage]
       operationId: getStorageObject
-      summary: Serve an uploaded object
+      summary: Private object reads are not served here
+      description: >
+        Private objects are never served by this generic route. Customer room
+        photos and AI renders are only available through
+        GET /leads/{id}/images/{kind} with a valid credential.
       parameters:
         - name: objectPath
           in: path
@@ -190,13 +400,6 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: Object content
-          content:
-            "*/*":
-              schema:
-                type: string
-                format: binary
         "404":
           description: Object not found
           content:
@@ -252,6 +455,13 @@ components:
           type: string
         projectType:
           type: string
+        designRequestId:
+          type: string
+          minLength: 32
+          maxLength: 200
+        uploadProof:
+          type: string
+          minLength: 32
       required:
         - name
         - email
@@ -265,6 +475,12 @@ components:
           type: string
         id:
           type: integer
+        accessToken:
+          type: string
+          description: >
+            One-time anonymous access token for the design-studio AI
+            generation endpoints. Returned only for source=design-studio and
+            never retrievable again. Send it in the x-design-token header.
       required:
         - success
         - message
@@ -330,6 +546,52 @@ components:
         createdAt:
           type: string
           format: date-time
+        aiStatus:
+          type: string
+          nullable: true
+          description: pending | processing | completed | failed
+        aiPromptSummary:
+          type: string
+          nullable: true
+        aiProvider:
+          type: string
+          nullable: true
+        aiModel:
+          type: string
+          nullable: true
+        aiAttempts:
+          type: integer
+          nullable: true
+        aiError:
+          type: string
+          nullable: true
+        aiErrorDetail:
+          type: string
+          nullable: true
+          description: Admin-only diagnostic detail
+        aiStartedAt:
+          type: string
+          format: date-time
+          nullable: true
+        aiCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        aiUpdatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        hasGeneratedImage:
+          type: boolean
+          nullable: true
+        generatedImageUrl:
+          type: string
+          nullable: true
+          description: Protected API URL for the generated render
+        sourceImageUrl:
+          type: string
+          nullable: true
+          description: Protected API URL for the customer's uploaded photo
       required:
         - id
         - name
@@ -356,6 +618,132 @@ components:
           type: string
       required:
         - status
+    GenerationSelections:
+      type: object
+      description: Customer-safe echo of the selections used to build the design.
+      properties:
+        roomType:
+          type: string
+          nullable: true
+        roomSize:
+          type: string
+          nullable: true
+        builtInType:
+          type: string
+          nullable: true
+        style:
+          type: string
+          nullable: true
+        colorTone:
+          type: string
+          nullable: true
+        keepLayout:
+          type: string
+          nullable: true
+        timeline:
+          type: string
+          nullable: true
+        budgetMin:
+          type: integer
+          nullable: true
+        budgetMax:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+    GenerationStatusResponse:
+      type: object
+      description: >
+        Customer-facing generation state. Never contains the exact prompt,
+        raw object paths, token hashes, or admin diagnostics.
+      properties:
+        leadId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        conceptSummary:
+          type: string
+          nullable: true
+        generatedImageUrl:
+          type: string
+          nullable: true
+        sourceImageUrl:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        attempts:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        selections:
+          $ref: "#/components/schemas/GenerationSelections"
+      required:
+        - leadId
+        - status
+        - attempts
+        - selections
+    AdminGenerationStatusResponse:
+      type: object
+      description: Admin view of generation state, including diagnostics.
+      properties:
+        leadId:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        conceptSummary:
+          type: string
+          nullable: true
+        generatedImageUrl:
+          type: string
+          nullable: true
+        sourceImageUrl:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        errorDetail:
+          type: string
+          nullable: true
+        provider:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        attempts:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - leadId
+        - status
+        - attempts
     UploadUrlRequest:
       type: object
       required: [name, size, contentType]
@@ -366,17 +754,21 @@ components:
         size:
           type: integer
           minimum: 1
+          maximum: 10485760
         contentType:
           type: string
-          minLength: 1
+          enum: [image/jpeg, image/jpg, image/png, image/webp]
     UploadUrlResponse:
       type: object
-      required: [uploadURL, objectPath]
+      required: [uploadURL, objectPath, uploadToken, uploadProof]
       properties:
         uploadURL:
           type: string
-          format: uri
         objectPath:
+          type: string
+        uploadToken:
+          type: string
+        uploadProof:
           type: string
     ErrorResponse:
       type: object

@@ -17,7 +17,9 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminGenerationStatusResponse,
   ErrorResponse,
+  GenerationStatusResponse,
   HealthStatus,
   LeadInput,
   LeadRecord,
@@ -114,7 +116,8 @@ export function useHealthCheck<
 }
 
 /**
- * Unified lead from contact form, estimator, or design studio
+ * Unified lead from contact form, estimator, or design studio. For source=design-studio the room photo and all design preferences are required, and the response includes a one-time accessToken.
+
  * @summary Submit a new lead
  */
 export const getSubmitLeadUrl = () => {
@@ -356,6 +359,370 @@ export const useUpdateLeadStatus = <
 };
 
 /**
+ * Starts the AI room render for a design-studio lead. Requires the one-time customer access token issued by POST /leads, sent in the x-design-token header. Generation runs inside the request lifecycle; the response reflects the final persisted state.
+
+ * @summary Start AI design generation for a design-studio lead
+ */
+export const getStartLeadGenerationUrl = (id: number) => {
+  return `/api/leads/${id}/generation`;
+};
+
+export const startLeadGeneration = async (
+  id: number,
+  options?: RequestInit,
+): Promise<GenerationStatusResponse> => {
+  return customFetch<GenerationStatusResponse>(getStartLeadGenerationUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getStartLeadGenerationMutationOptions = <
+  TError = ErrorType<ErrorResponse | GenerationStatusResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startLeadGeneration>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startLeadGeneration>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["startLeadGeneration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startLeadGeneration>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return startLeadGeneration(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartLeadGenerationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startLeadGeneration>>
+>;
+
+export type StartLeadGenerationMutationError = ErrorType<
+  ErrorResponse | GenerationStatusResponse
+>;
+
+/**
+ * @summary Start AI design generation for a design-studio lead
+ */
+export const useStartLeadGeneration = <
+  TError = ErrorType<ErrorResponse | GenerationStatusResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startLeadGeneration>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startLeadGeneration>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getStartLeadGenerationMutationOptions(options));
+};
+
+/**
+ * @summary Get AI design generation state
+ */
+export const getGetLeadGenerationUrl = (id: number) => {
+  return `/api/leads/${id}/generation`;
+};
+
+export const getLeadGeneration = async (
+  id: number,
+  options?: RequestInit,
+): Promise<GenerationStatusResponse> => {
+  return customFetch<GenerationStatusResponse>(getGetLeadGenerationUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLeadGenerationQueryKey = (id: number) => {
+  return [`/api/leads/${id}/generation`] as const;
+};
+
+export const getGetLeadGenerationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLeadGeneration>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLeadGeneration>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLeadGenerationQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLeadGeneration>>
+  > = ({ signal }) => getLeadGeneration(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLeadGeneration>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLeadGenerationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLeadGeneration>>
+>;
+export type GetLeadGenerationQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get AI design generation state
+ */
+
+export function useGetLeadGeneration<
+  TData = Awaited<ReturnType<typeof getLeadGeneration>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLeadGeneration>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLeadGenerationQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Admin-only retry. Allowed when the generation failed, or when a processing run is stale (older than the generation timeout).
+
+ * @summary Retry a failed AI generation (admin)
+ */
+export const getRetryLeadGenerationUrl = (id: number) => {
+  return `/api/leads/${id}/generation/retry`;
+};
+
+export const retryLeadGeneration = async (
+  id: number,
+  options?: RequestInit,
+): Promise<AdminGenerationStatusResponse> => {
+  return customFetch<AdminGenerationStatusResponse>(
+    getRetryLeadGenerationUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getRetryLeadGenerationMutationOptions = <
+  TError = ErrorType<ErrorResponse | AdminGenerationStatusResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof retryLeadGeneration>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof retryLeadGeneration>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["retryLeadGeneration"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof retryLeadGeneration>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return retryLeadGeneration(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RetryLeadGenerationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof retryLeadGeneration>>
+>;
+
+export type RetryLeadGenerationMutationError = ErrorType<
+  ErrorResponse | AdminGenerationStatusResponse
+>;
+
+/**
+ * @summary Retry a failed AI generation (admin)
+ */
+export const useRetryLeadGeneration = <
+  TError = ErrorType<ErrorResponse | AdminGenerationStatusResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof retryLeadGeneration>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof retryLeadGeneration>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRetryLeadGenerationMutationOptions(options));
+};
+
+/**
+ * Streams the customer's uploaded room photo (source) or the AI generated render (generated). Requires either the customer x-design-token or the admin x-admin-key header.
+
+ * @summary Serve a protected lead image
+ */
+export const getGetLeadImageUrl = (
+  id: number,
+  kind: "source" | "generated",
+) => {
+  return `/api/leads/${id}/images/${kind}`;
+};
+
+export const getLeadImage = async (
+  id: number,
+  kind: "source" | "generated",
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetLeadImageUrl(id, kind), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLeadImageQueryKey = (
+  id: number,
+  kind: "source" | "generated",
+) => {
+  return [`/api/leads/${id}/images/${kind}`] as const;
+};
+
+export const getGetLeadImageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLeadImage>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  kind: "source" | "generated",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLeadImage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLeadImageQueryKey(id, kind);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeadImage>>> = ({
+    signal,
+  }) => getLeadImage(id, kind, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && kind),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLeadImage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLeadImageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLeadImage>>
+>;
+export type GetLeadImageQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Serve a protected lead image
+ */
+
+export function useGetLeadImage<
+  TData = Awaited<ReturnType<typeof getLeadImage>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  kind: "source" | "generated",
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLeadImage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLeadImageQueryOptions(id, kind, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Request a presigned URL for file upload
  */
 export const getRequestUploadUrlUrl = () => {
@@ -530,7 +897,9 @@ export function useGetPublicObject<
 }
 
 /**
- * @summary Serve an uploaded object
+ * Private objects are never served by this generic route. Customer room photos and AI renders are only available through GET /leads/{id}/images/{kind} with a valid credential.
+
+ * @summary Private object reads are not served here
  */
 export const getGetStorageObjectUrl = (objectPath: string) => {
   return `/api/storage/objects/${objectPath}`;
@@ -539,8 +908,8 @@ export const getGetStorageObjectUrl = (objectPath: string) => {
 export const getStorageObject = async (
   objectPath: string,
   options?: RequestInit,
-): Promise<Blob> => {
-  return customFetch<Blob>(getGetStorageObjectUrl(objectPath), {
+): Promise<unknown> => {
+  return customFetch<unknown>(getGetStorageObjectUrl(objectPath), {
     ...options,
     method: "GET",
   });
@@ -592,7 +961,7 @@ export type GetStorageObjectQueryResult = NonNullable<
 export type GetStorageObjectQueryError = ErrorType<ErrorResponse>;
 
 /**
- * @summary Serve an uploaded object
+ * @summary Private object reads are not served here
  */
 
 export function useGetStorageObject<

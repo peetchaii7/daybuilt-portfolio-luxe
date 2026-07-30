@@ -26,4 +26,11 @@ export interface LeadInput {
   keepLayout?: string;
   timeline?: string;
   projectType?: string;
+  /**
+   * @minLength 32
+   * @maxLength 200
+   */
+  designRequestId?: string;
+  /** @minLength 32 */
+  uploadProof?: string;
 }
