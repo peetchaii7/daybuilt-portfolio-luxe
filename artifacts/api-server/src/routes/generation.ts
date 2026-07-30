@@ -131,13 +131,9 @@ async function authenticateCustomer(
   }
 
   const lead = await getLeadById(parsedParams.data.id);
-  if (!lead) {
-    // Same shape as an invalid token so the endpoint cannot be used to probe
-    // which lead ids exist.
-    return { ok: false, status: 404, error: 'Lead not found' };
-  }
-
-  if (!verifyLeadAccessToken(token, lead.accessTokenHash)) {
+  if (!lead || !verifyLeadAccessToken(token, lead.accessTokenHash)) {
+    // Identical response for a nonexistent lead and a wrong token so the
+    // endpoint cannot be used to probe which lead ids exist.
     return { ok: false, status: 401, error: 'Invalid access token' };
   }
 
@@ -295,21 +291,23 @@ router.get('/leads/:id/images/:kind', async (req: Request, res: Response) => {
   const { id, kind } = parsedParams.data;
 
   const lead = await getLeadById(id);
-  if (!lead) {
-    res.status(404).json({ error: 'Image not found' });
-    return;
-  }
 
   const token = readDesignTokenHeader(
     req.headers as { 'x-design-token'?: string | string[] },
   );
-  const customerOk = token
-    ? verifyLeadAccessToken(token, lead.accessTokenHash)
-    : false;
+  const customerOk =
+    token && lead ? verifyLeadAccessToken(token, lead.accessTokenHash) : false;
   const adminOk = isValidAdminKey(req.headers['x-admin-key']);
 
+  // Auth is checked before lead existence so an unauthenticated caller gets
+  // the same 401 whether or not the lead id exists (no id probing).
   if (!customerOk && !adminOk) {
     res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  if (!lead) {
+    res.status(404).json({ error: 'Image not found' });
     return;
   }
 

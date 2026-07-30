@@ -1,1 +1,2 @@
 - [Customer upload validation](customer-upload-validation.md) — signed object URLs do not enforce declared metadata; validate anonymous uploads at the app boundary.
+- [Anti-probing error responses](anti-probing-errors.md) — lead endpoints must check credentials before record existence and return identical errors, or callers can enumerate lead ids.
