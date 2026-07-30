@@ -18,7 +18,7 @@ export const leadsTable = pgTable("leads", {
   description: text("description"),
   imageUrl: text("image_url"), // object storage path from upload
   // Design Studio specific
-  style: text("style"),         // e.g. "Japandi", "Modern Luxury", "Minimal"
+  style: text("style"),         // e.g. "Modern Luxury", "Minimal Luxury", "Contemporary"
   colorTone: text("color_tone"), // e.g. "Warm Neutral", "Dark Wood"
   keepLayout: text("keep_layout"), // 'yes' | 'no'
   timeline: text("timeline"),   // e.g. "ทันที", "1-3 เดือน"

@@ -36,12 +36,12 @@ const BUILT_IN_TYPES = [
 ];
 
 const STYLES = [
-  { id: "มินิมอล", label: "มินิมอล", sub: "Minimal", swatch: "from-stone-200 to-stone-400" },
-  { id: "Modern Luxury", label: "Modern Luxury", sub: "Modern Luxury", swatch: "from-zinc-700 to-black" },
-  { id: "อินดัสเทรียล", label: "อินดัสเทรียล", sub: "Industrial", swatch: "from-neutral-500 to-neutral-800" },
-  { id: "ญี่ปุ่น-สแกนดิ", label: "ญี่ปุ่น-สแกนดิ", sub: "Japandi", swatch: "from-amber-50 to-orange-200" },
-  { id: "คลาสสิกไทย", label: "คลาสสิกไทย", sub: "Classic Thai", swatch: "from-amber-700 via-amber-900 to-black" },
-  { id: "วินเทจ", label: "วินเทจ", sub: "Vintage", swatch: "from-rose-200 via-amber-200 to-stone-300" },
+  { id: "Modern Luxury", label: "โมเดิร์นลักชัวรี", sub: "Modern Luxury", swatch: "from-zinc-700 to-black" },
+  { id: "Minimal Luxury", label: "มินิมอลลักชัวรี", sub: "Minimal Luxury", swatch: "from-stone-200 to-stone-500" },
+  { id: "Contemporary", label: "คอนเทมโพรารี", sub: "Contemporary", swatch: "from-slate-300 to-slate-700" },
+  { id: "Warm Luxury", label: "วอร์มลักชัวรี", sub: "Warm Luxury", swatch: "from-amber-100 via-stone-400 to-amber-900" },
+  { id: "Classic Modern", label: "คลาสสิกโมเดิร์น", sub: "Classic Modern", swatch: "from-neutral-200 via-neutral-500 to-neutral-900" },
+  { id: "Luxury Dark", label: "ลักชัวรีดาร์ก", sub: "Luxury Dark", swatch: "from-stone-700 via-zinc-900 to-black" },
 ];
 
 const COLOR_TONES = [
@@ -75,15 +75,16 @@ const TOTAL_STEPS = 6;
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center justify-center mb-10 gap-0">
+    <div className="flex w-full items-center mb-10" aria-label={`ขั้นตอนที่ ${current} จาก ${TOTAL_STEPS}`}>
       {Array.from({ length: TOTAL_STEPS }, (_, i) => {
         const num = i + 1;
         const done = num < current;
         const active = num === current;
         return (
-          <div key={num} className="flex items-center">
+          <div key={num} className={`flex min-w-0 items-center ${num < TOTAL_STEPS ? "flex-1" : ""}`}>
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border transition-all
+              aria-current={active ? "step" : undefined}
+              className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center text-xs font-medium border transition-all
                 ${active ? "bg-[#c9a84c] text-black border-[#c9a84c]" : ""}
                 ${done ? "border-[#c9a84c] text-[#c9a84c]" : ""}
                 ${!active && !done ? "border-white/20 text-white/40" : ""}
@@ -92,7 +93,7 @@ function StepIndicator({ current }: { current: number }) {
               {done ? <Check size={12} strokeWidth={2.5} /> : num}
             </div>
             {num < TOTAL_STEPS && (
-              <div className="w-10 h-px bg-[#c9a84c]/30 mx-0.5" />
+              <div aria-hidden="true" className="mx-1 h-px min-w-1 flex-1 bg-[#c9a84c]/30" />
             )}
           </div>
         );
@@ -226,6 +227,13 @@ export default function DesignStudio() {
     setStep((s) => s - 1);
   };
 
+  const canContinue =
+    step === 1 ||
+    (step === 2 && Boolean(roomType && roomSize)) ||
+    (step === 3 && builtInTypes.length > 0) ||
+    (step === 4 && Boolean(style && colorTone)) ||
+    (step === 5 && Boolean(keepLayout && budgetValue && timeline));
+
   // ─── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -268,18 +276,20 @@ export default function DesignStudio() {
   // ─── Shared Classes ────────────────────────────────────────────────────────
 
   const cardBase =
-    "cursor-pointer border transition-all duration-150 bg-[#111] border-white/10 hover:border-[#c9a84c]/40 p-4 text-left";
+    "relative z-10 min-h-16 w-full cursor-pointer touch-manipulation select-none border transition-all duration-150 bg-[#111] border-white/10 hover:border-[#c9a84c]/40 active:border-[#c9a84c] p-4 text-left pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a]";
   const cardSelected =
-    "border-[#c9a84c] bg-[#1a1500]";
+    "border-[#c9a84c] bg-[#1a1500] shadow-[inset_0_0_0_1px_rgba(201,168,76,0.2)]";
   const btnBack =
-    "border border-white/20 text-white px-8 py-3 text-sm tracking-wide hover:bg-white/5 transition-colors";
+    "relative z-30 min-h-12 touch-manipulation border border-white/20 text-white px-6 md:px-8 py-3 text-sm tracking-wide hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]";
   const btnNext =
-    "bg-[#c9a84c] text-black px-8 py-3 text-sm font-medium tracking-wide hover:bg-[#b8943d] transition-colors disabled:opacity-40";
+    "relative z-30 min-h-12 touch-manipulation bg-[#c9a84c] text-black px-6 md:px-8 py-3 text-sm font-medium tracking-wide hover:bg-[#b8943d] transition-colors disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white";
+  const actionRow =
+    "sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-6 z-30 flex justify-between gap-3 mt-8 border border-white/10 bg-[#0a0a0a]/95 p-3 shadow-2xl backdrop-blur";
 
   // ─── Render Steps ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-[calc(8rem+env(safe-area-inset-bottom))]">
       <div className="max-w-3xl mx-auto px-6">
         {/* Header */}
         <div className="text-center mb-10">
@@ -313,6 +323,7 @@ export default function DesignStudio() {
                   className="max-h-64 max-w-full object-cover border border-white/10"
                 />
                 <button
+                  type="button"
                   onClick={handleRemoveImage}
                   className="absolute top-2 right-2 bg-black/70 border border-white/20 p-1 hover:bg-black transition-colors"
                 >
@@ -352,14 +363,16 @@ export default function DesignStudio() {
             )}
             {fieldError && <p className="text-red-400 text-sm mt-3">{fieldError}</p>}
 
-            <div className="flex items-center justify-between mt-8">
+            <div className={actionRow}>
               <button
+                type="button"
                 className="text-sm text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
                 onClick={() => { setStep(2); setFieldError(""); }}
               >
                 ข้ามขั้นตอนนี้
               </button>
               <button
+                type="button"
                 className={btnNext}
                 disabled={isUploading}
                 onClick={goNext}
@@ -379,12 +392,17 @@ export default function DesignStudio() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
               {ROOM_TYPES.map((r) => (
                 <button
+                  type="button"
                   key={r.id}
                   className={`${cardBase} ${roomType === r.id ? cardSelected : ""}`}
                   onClick={() => setRoomType(r.id)}
+                  aria-pressed={roomType === r.id}
                 >
-                  <p className="text-sm font-medium">{r.th}</p>
-                  <p className="text-[10px] text-white/40 mt-0.5">{r.en}</p>
+                  <span className="pointer-events-none block pr-6">
+                    <span className="block text-sm font-medium">{r.th}</span>
+                    <span className="mt-0.5 block text-[10px] text-white/40">{r.en}</span>
+                  </span>
+                  {roomType === r.id && <Check aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-3 text-[#c9a84c]" />}
                 </button>
               ))}
             </div>
@@ -393,20 +411,23 @@ export default function DesignStudio() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {ROOM_SIZES.map((s) => (
                 <button
+                  type="button"
                   key={s}
                   className={`${cardBase} text-center ${roomSize === s ? cardSelected : ""}`}
                   onClick={() => setRoomSize(s)}
+                  aria-pressed={roomSize === s}
                 >
-                  <p className="text-sm">{s}</p>
+                  <span className="pointer-events-none block text-sm">{s}</span>
+                  {roomSize === s && <Check aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-3 text-[#c9a84c]" />}
                 </button>
               ))}
             </div>
 
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
-            <div className="flex justify-between mt-8">
-              <button className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button className={btnNext} onClick={goNext}>ถัดไป →</button>
+            <div className={actionRow}>
+              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -420,11 +441,13 @@ export default function DesignStudio() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {BUILT_IN_TYPES.map((b) => (
                 <button
+                  type="button"
                   key={b.id}
                   className={`${cardBase} ${builtInTypes.includes(b.id) ? cardSelected : ""}`}
                   onClick={() => toggleBuiltIn(b.id)}
+                  aria-pressed={builtInTypes.includes(b.id)}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="pointer-events-none flex items-start justify-between gap-2">
                     <div>
                       <p className="text-sm font-medium">{b.th}</p>
                       <p className="text-[10px] text-white/40 mt-0.5">{b.en}</p>
@@ -439,9 +462,9 @@ export default function DesignStudio() {
 
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
-            <div className="flex justify-between mt-8">
-              <button className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button className={btnNext} onClick={goNext}>ถัดไป →</button>
+            <div className={actionRow}>
+              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -455,13 +478,16 @@ export default function DesignStudio() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
               {STYLES.map((s) => (
                 <button
+                  type="button"
                   key={s.id}
                   className={`${cardBase} overflow-hidden ${style === s.id ? cardSelected : ""}`}
                   onClick={() => setStyle(s.id)}
+                  aria-pressed={style === s.id}
                 >
-                  <div className={`w-full h-16 rounded-sm bg-gradient-to-br ${s.swatch} mb-3`} />
-                  <p className="text-sm font-medium">{s.label}</p>
-                  <p className="text-[10px] text-white/40">{s.sub}</p>
+                  <div className={`pointer-events-none w-full h-16 rounded-sm bg-gradient-to-br ${s.swatch} mb-3`} />
+                  <span className="pointer-events-none block text-sm font-medium">{s.label}</span>
+                  <span className="pointer-events-none block text-[10px] text-white/40">{s.sub}</span>
+                  {style === s.id && <Check aria-hidden="true" size={17} className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/70 p-0.5 text-[#c9a84c]" />}
                 </button>
               ))}
             </div>
@@ -470,28 +496,33 @@ export default function DesignStudio() {
             <div className="flex flex-wrap gap-4">
               {COLOR_TONES.map((c) => (
                 <button
+                  type="button"
                   key={c.id}
                   onClick={() => setColorTone(c.id)}
-                  className="flex flex-col items-center gap-1.5 group"
+                  aria-pressed={colorTone === c.id}
+                  className={`relative z-10 min-h-24 min-w-24 flex-1 cursor-pointer touch-manipulation select-none border p-3 pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${
+                    colorTone === c.id ? cardSelected : "border-white/10 bg-[#111] hover:border-[#c9a84c]/40"
+                  }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
+                    className={`pointer-events-none mx-auto w-10 h-10 rounded-full border-2 transition-all ${
                       colorTone === c.id ? "border-[#c9a84c] scale-110" : "border-white/20 hover:border-white/40"
                     }`}
                     style={{ backgroundColor: c.hex }}
                   />
-                  <span className={`text-[10px] tracking-wide ${colorTone === c.id ? "text-[#c9a84c]" : "text-white/40"}`}>
+                  <span className={`pointer-events-none mt-2 block text-center text-[10px] tracking-wide ${colorTone === c.id ? "text-[#c9a84c]" : "text-white/40"}`}>
                     {c.label}
                   </span>
+                  {colorTone === c.id && <Check aria-hidden="true" size={15} className="pointer-events-none absolute right-2 top-2 text-[#c9a84c]" />}
                 </button>
               ))}
             </div>
 
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
-            <div className="flex justify-between mt-8">
-              <button className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button className={btnNext} onClick={goNext}>ถัดไป →</button>
+            <div className={actionRow}>
+              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -509,51 +540,60 @@ export default function DesignStudio() {
                 { val: "no", label: "ยินดีให้ปรับ Layout ใหม่", desc: "ให้ทีมออกแบบได้อิสระ" },
               ].map((o) => (
                 <button
+                  type="button"
                   key={o.val}
                   className={`${cardBase} ${keepLayout === o.val ? cardSelected : ""}`}
                   onClick={() => setKeepLayout(o.val)}
+                  aria-pressed={keepLayout === o.val}
                 >
-                  <p className="text-sm font-medium">{o.label}</p>
-                  <p className="text-xs text-white/40 mt-1">{o.desc}</p>
+                  <span className="pointer-events-none block pr-6">
+                    <span className="block text-sm font-medium">{o.label}</span>
+                    <span className="mt-1 block text-xs text-white/40">{o.desc}</span>
+                  </span>
+                  {keepLayout === o.val && <Check aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-3 text-[#c9a84c]" />}
                 </button>
               ))}
             </div>
 
             {/* Budget */}
             <p className="text-xs text-[#c9a84c] tracking-widest uppercase mb-3">งบประมาณ (บาท)</p>
-            <div className="mb-8">
-              <select
-                value={budgetValue}
-                onChange={(e) => setBudgetValue(e.target.value)}
-                className="w-full bg-[#111] border border-white/10 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9a84c]/60 appearance-none"
-              >
-                <option value="" disabled>เลือกงบประมาณ</option>
-                {BUDGET_OPTIONS.map((b) => (
-                  <option key={b.value} value={b.value}>฿{b.label}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+              {BUDGET_OPTIONS.map((b) => (
+                <button
+                  type="button"
+                  key={b.value}
+                  onClick={() => setBudgetValue(b.value)}
+                  aria-pressed={budgetValue === b.value}
+                  className={`${cardBase} text-center ${budgetValue === b.value ? cardSelected : ""}`}
+                >
+                  <span className="pointer-events-none block text-sm">฿{b.label}</span>
+                  {budgetValue === b.value && <Check aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-3 text-[#c9a84c]" />}
+                </button>
+              ))}
             </div>
 
             {/* Timeline */}
             <p className="text-xs text-[#c9a84c] tracking-widest uppercase mb-3">ช่วงเวลาที่ต้องการ</p>
-            <div className="mb-4">
-              <select
-                value={timeline}
-                onChange={(e) => setTimeline(e.target.value)}
-                className="w-full bg-[#111] border border-white/10 text-white text-sm px-4 py-3 focus:outline-none focus:border-[#c9a84c]/60 appearance-none"
-              >
-                <option value="" disabled>เลือกช่วงเวลา</option>
-                {TIMELINE_OPTIONS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+              {TIMELINE_OPTIONS.map((t) => (
+                <button
+                  type="button"
+                  key={t}
+                  onClick={() => setTimeline(t)}
+                  aria-pressed={timeline === t}
+                  className={`${cardBase} ${timeline === t ? cardSelected : ""}`}
+                >
+                  <span className="pointer-events-none block pr-6 text-sm">{t}</span>
+                  {timeline === t && <Check aria-hidden="true" size={16} className="pointer-events-none absolute right-3 top-3 text-[#c9a84c]" />}
+                </button>
+              ))}
             </div>
 
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
 
-            <div className="flex justify-between mt-8">
-              <button className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
-              <button className={btnNext} onClick={goNext}>ถัดไป →</button>
+            <div className={actionRow}>
+              <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
+              <button type="button" className={btnNext} disabled={!canContinue} onClick={goNext}>ถัดไป →</button>
             </div>
           </div>
         )}
@@ -620,7 +660,7 @@ export default function DesignStudio() {
             {fieldError && <p className="text-red-400 text-sm mt-4">{fieldError}</p>}
             {submitError && <p className="text-red-400 text-sm mt-4">{submitError}</p>}
 
-            <div className="flex justify-between mt-8">
+            <div className={actionRow}>
               <button type="button" className={btnBack} onClick={goBack}>← ย้อนกลับ</button>
               <button
                 type="submit"

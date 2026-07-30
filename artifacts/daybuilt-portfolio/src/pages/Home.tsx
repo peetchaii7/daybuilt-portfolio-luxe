@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const featuredProjects = [
   {
     id: 1,
-    title: "บ้านพักอาศัยสไตล์ Japandi",
+    title: "บ้านพักอาศัยสไตล์ Contemporary",
     type: "Residential",
     image: `${import.meta.env.BASE_URL}images/project-res-1.png`,
   },

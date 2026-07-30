@@ -21,7 +21,7 @@ const sections: { id: string; label: string; labelEn: string; projects: Project[
     projects: [
       {
         id: 101,
-        title: "ตู้เสื้อผ้า Walk-in สไตล์ Japandi",
+        title: "ตู้เสื้อผ้า Walk-in สไตล์ Minimal Luxury",
         category: "ห้องนอน",
         location: "สุขุมวิท 49, กรุงเทพฯ",
         description: "ตู้เสื้อผ้า Walk-in 4.5 เมตร วัสดุไม้ออคและลามิเนตขาว ระบบบานเลื่อนซ่อนราง พร้อมไฟ LED ภายใน",
@@ -153,11 +153,11 @@ const sections: { id: string; label: string; labelEn: string; projects: Project[
       },
       {
         id: 503,
-        title: "ครัวสไตล์ Japandi โทน Warm",
+        title: "ครัวสไตล์ Warm Luxury",
         category: "ครัวและ Pantry",
         location: "เชียงใหม่",
-        description: "ครัวบิ้วท์อินสไตล์ Japandi ไม้ Teak โทน Warm Brown บานเรียบไร้มือจับ พร้อมผิว Linen บนเกาะกลาง",
-        image: `${BASE}images/kitchen-japandi-1.jpg`,
+        description: "ครัวบิ้วท์อินสไตล์ Warm Luxury ไม้ Teak โทน Warm Brown บานเรียบไร้มือจับ พร้อมผิว Linen บนเกาะกลาง",
+        image: `${BASE}images/kitchen-warm-luxury-1.jpg`,
       },
     ],
   },
