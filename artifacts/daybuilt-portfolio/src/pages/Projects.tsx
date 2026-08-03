@@ -11,7 +11,39 @@ interface Project {
   location: string;
   description: string;
   image: string;
+  images?: string[];
 }
+
+const modelShowcaseImages = [
+  "1785375045627.jpg",
+  "1785375045702.jpg",
+  "1785375045728.jpg",
+  "1785375045749.jpg",
+  "1785375045765.jpg",
+  "1785375045780.jpg",
+  "1785375045813.jpg",
+  "1785375045826.jpg",
+  "1785375045840.jpg",
+  "1785375050055.jpg",
+  "1785375050082.jpg",
+  "1785375050144.jpg",
+  "1785375050178.jpg",
+  "1785375050201.jpg",
+  "1785375050222.jpg",
+  "1785375050248.jpg",
+  "1785375050266.jpg",
+  "1785375050286.jpg",
+  "1785375053919.jpg",
+  "1785375053954.jpg",
+  "1785375053972.jpg",
+  "1785375054000.jpg",
+  "1785375054024.jpg",
+  "1785375054040.jpg",
+  "1785375054055.jpg",
+  "1785375054071.jpg",
+  "1785375050109.jpg",
+  "1785375045799.jpg",
+].map((filename) => `${BASE}images/model-showcase/${filename}`);
 
 const sections: { id: string; label: string; labelEn: string; projects: Project[] }[] = [
   {
@@ -96,6 +128,15 @@ const sections: { id: string; label: string; labelEn: string; projects: Project[
         location: "พระโขนง, กรุงเทพฯ",
         description: "Feature Wall ผสมผสานชั้นลอยตัวไม้ดำ ผนังไม้ Fluted Panel และไฟ Strip LED หลังชั้น",
         image: `${BASE}images/display-feature-1.jpg`,
+      },
+      {
+        id: 304,
+        title: "ตู้โชว์โมเดล",
+        category: "ตู้โชว์ / Media Wall",
+        location: "ผลงานตู้โชว์และ Media Wall",
+        description: "คอลเลกชันภาพผลงานตู้โชว์โมเดลและ Media Wall จำนวน 28 ภาพ ถ่ายทอดรายละเอียดวัสดุ ช่องจัดแสดง แสงไฟ และงานบิ้วท์อินในมุมมองต่าง ๆ",
+        image: modelShowcaseImages[0],
+        images: modelShowcaseImages,
       },
     ],
   },
@@ -318,15 +359,23 @@ export default function Projects() {
         <DialogContent className="max-w-4xl bg-card border-border p-0 overflow-hidden">
           {selectedProject && (
             <div className="flex flex-col md:flex-row h-full max-h-[85vh]">
-              <div className="w-full md:w-3/5 h-64 md:h-auto relative bg-muted">
-                <img
-                  src={selectedProject.image}
-                  alt={selectedProject.title}
-                  className="w-full h-full object-cover absolute inset-0"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
-                  }}
-                />
+              <div className="w-full md:w-3/5 h-[48vh] min-h-64 md:h-[85vh] md:max-h-[85vh] overflow-y-auto bg-muted p-3">
+                <div className={selectedProject.images ? "grid grid-cols-2 gap-3" : "h-full"}>
+                  {(selectedProject.images ?? [selectedProject.image]).map((image, index) => (
+                    <img
+                      key={image}
+                      src={image}
+                      alt={`${selectedProject.title} ภาพที่ ${index + 1}`}
+                      className={selectedProject.images
+                        ? "w-full aspect-[4/3] object-contain bg-background/40"
+                        : "w-full h-full object-cover"}
+                      loading={index > 1 ? "lazy" : "eager"}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
               <div className="w-full md:w-2/5 p-8 flex flex-col justify-center bg-card">
                 <DialogHeader className="text-left mb-6">
