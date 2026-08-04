@@ -11,9 +11,13 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { db, leadsTable } from '@workspace/db';
 import { inArray } from 'drizzle-orm';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import app from '../app';
+import {
+  FAILED_AUTH_MAX_FAILURES,
+  resetFailedAuthRateLimiter,
+} from '../lib/failedAuthRateLimit';
 import { ObjectStorageService } from '../lib/objectStorage';
 
 const PNG_BYTES = Buffer.concat([
@@ -98,6 +102,10 @@ beforeAll(async () => {
   leadB = await createDesignLead();
 });
 
+beforeEach(() => {
+  resetFailedAuthRateLimiter();
+});
+
 afterAll(async () => {
   if (previousAdminKey === undefined) {
     delete process.env.ADMIN_KEY;
@@ -122,6 +130,27 @@ afterAll(async () => {
 });
 
 describe('GET /api/leads/:id/images/:kind auth', () => {
+  it('throttles a burst of failed auth attempts without blocking a valid customer', async () => {
+    for (let attempt = 0; attempt < FAILED_AUTH_MAX_FAILURES; attempt += 1) {
+      const res = await request(app)
+        .get(`/api/leads/${leadA.id}/images/source`)
+        .set('x-design-token', 'not-a-real-token');
+      expect(res.status).toBe(401);
+    }
+
+    const throttled = await request(app)
+      .get(`/api/leads/${leadA.id}/images/source`)
+      .set('x-design-token', 'not-a-real-token');
+    expect(throttled.status).toBe(429);
+    expect(throttled.headers['retry-after']).toBe('60');
+
+    const legitimate = await request(app)
+      .get(`/api/leads/${leadA.id}/images/source`)
+      .set('x-design-token', leadA.token);
+    expect(legitimate.status).toBe(200);
+    expect(legitimate.headers['content-type']).toBe('image/png');
+  });
+
   it('rejects a missing token', async () => {
     const res = await request(app).get(`/api/leads/${leadA.id}/images/source`);
     expect(res.status).toBe(401);
@@ -183,6 +212,27 @@ describe('GET /api/leads/:id/images/:kind auth', () => {
 });
 
 describe('GET /api/leads/:id/generation auth', () => {
+  it('throttles repeated invalid generation-status credentials', async () => {
+    for (let attempt = 0; attempt < FAILED_AUTH_MAX_FAILURES; attempt += 1) {
+      const res = await request(app)
+        .get(`/api/leads/${leadA.id}/generation`)
+        .set('x-design-token', 'not-a-real-token');
+      expect(res.status).toBe(401);
+    }
+
+    const throttled = await request(app)
+      .get(`/api/leads/${leadA.id}/generation`)
+      .set('x-design-token', 'not-a-real-token');
+    expect(throttled.status).toBe(429);
+    expect(throttled.headers['retry-after']).toBe('60');
+
+    const legitimate = await request(app)
+      .get(`/api/leads/${leadA.id}/generation`)
+      .set('x-design-token', leadA.token);
+    expect(legitimate.status).toBe(200);
+    expect(legitimate.body.leadId).toBe(leadA.id);
+  });
+
   it('rejects a missing token', async () => {
     const res = await request(app).get(`/api/leads/${leadA.id}/generation`);
     expect(res.status).toBe(401);

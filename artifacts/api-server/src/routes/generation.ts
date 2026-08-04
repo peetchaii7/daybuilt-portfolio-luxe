@@ -27,6 +27,7 @@ import {
   ObjectNotFoundError,
   ObjectStorageService,
 } from '../lib/objectStorage';
+import { recordFailedAuthAttempt } from '../lib/failedAuthRateLimit';
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -112,7 +113,38 @@ function toAdminResponse(lead: Lead) {
 
 type CustomerAuth =
   | { ok: true; lead: Lead }
-  | { ok: false; status: 400 | 401 | 404; error: string };
+  | {
+      ok: false;
+      status: 400 | 401 | 404 | 429;
+      error: string;
+      retryAfterSeconds?: number;
+    };
+
+function failedCustomerAuth(
+  req: Request,
+  error: string,
+): Extract<CustomerAuth, { ok: false }> {
+  const decision = recordFailedAuthAttempt(req);
+  if (!decision.allowed) {
+    return {
+      ok: false,
+      status: 429,
+      error: `Too many failed access attempts. Retry after ${decision.retryAfterSeconds} seconds.`,
+      retryAfterSeconds: decision.retryAfterSeconds,
+    };
+  }
+  return { ok: false, status: 401, error };
+}
+
+function sendCustomerAuthError(
+  response: Response,
+  auth: Extract<CustomerAuth, { ok: false }>,
+): void {
+  if (auth.status === 429 && auth.retryAfterSeconds) {
+    response.setHeader('Retry-After', String(auth.retryAfterSeconds));
+  }
+  response.status(auth.status).json({ error: auth.error });
+}
 
 async function authenticateCustomer(
   req: Request,
@@ -127,14 +159,14 @@ async function authenticateCustomer(
     req.headers as { 'x-design-token'?: string | string[] },
   );
   if (!token) {
-    return { ok: false, status: 401, error: 'Missing access token' };
+    return failedCustomerAuth(req, 'Missing access token');
   }
 
   const lead = await getLeadById(parsedParams.data.id);
   if (!lead || !verifyLeadAccessToken(token, lead.accessTokenHash)) {
     // Identical response for a nonexistent lead and a wrong token so the
     // endpoint cannot be used to probe which lead ids exist.
-    return { ok: false, status: 401, error: 'Invalid access token' };
+    return failedCustomerAuth(req, 'Invalid access token');
   }
 
   return { ok: true, lead };
@@ -149,7 +181,7 @@ async function authenticateCustomer(
 router.post('/leads/:id/generation', async (req: Request, res: Response) => {
   const auth = await authenticateCustomer(req, req.params.id);
   if (!auth.ok) {
-    res.status(auth.status).json({ error: auth.error });
+    sendCustomerAuthError(res, auth);
     return;
   }
 
@@ -207,7 +239,7 @@ router.get('/leads/:id/generation', async (req: Request, res: Response) => {
 
   const auth = await authenticateCustomer(req, req.params.id);
   if (!auth.ok) {
-    res.status(auth.status).json({ error: auth.error });
+    sendCustomerAuthError(res, auth);
     return;
   }
 
@@ -302,6 +334,16 @@ router.get('/leads/:id/images/:kind', async (req: Request, res: Response) => {
   // Auth is checked before lead existence so an unauthenticated caller gets
   // the same 401 whether or not the lead id exists (no id probing).
   if (!customerOk && !adminOk) {
+    const decision = recordFailedAuthAttempt(req);
+    if (!decision.allowed) {
+      res
+        .status(429)
+        .setHeader('Retry-After', String(decision.retryAfterSeconds))
+        .json({
+          error: `Too many failed access attempts. Retry after ${decision.retryAfterSeconds} seconds.`,
+        });
+      return;
+    }
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }

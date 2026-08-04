@@ -6,6 +6,11 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// The published app sits behind one Replit proxy hop. Trust only that hop so
+// Express derives req.ip from the forwarded client address without trusting
+// arbitrary client-supplied proxy chains.
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
