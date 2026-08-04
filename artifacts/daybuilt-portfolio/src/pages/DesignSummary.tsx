@@ -7,6 +7,7 @@ import {
   useGetLeadImage,
   getGetLeadImageQueryKey,
 } from "@workspace/api-client-react";
+import { getDesignImagePresentation } from "@workspace/api-zod";
 
 // ─── Before/After Comparison Slider ──────────────────────────────────────────
 
@@ -155,6 +156,35 @@ function ComparisonSlider({ beforeUrl, afterUrl, beforeAlt, afterAlt }: Comparis
   );
 }
 
+interface SingleImageProps {
+  url: string;
+  alt: string;
+  label: string;
+  testId: string;
+  aspectRatio: number | null;
+}
+
+function SingleImage({ url, alt, label, testId, aspectRatio }: SingleImageProps) {
+  return (
+    <div>
+      <div
+        className="relative w-full overflow-hidden border border-white/10 bg-black"
+        style={{ aspectRatio: aspectRatio ? `${aspectRatio}` : "4 / 3" }}
+      >
+        <img
+          src={url}
+          alt={alt}
+          data-testid={testId}
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+        <span className="absolute left-3 top-3 bg-black/70 px-2 py-1 text-[10px] tracking-wide text-white/90">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function DesignSummary() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -166,6 +196,11 @@ export default function DesignSummary() {
   // Object URLs for images
   const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [sourceImageReady, setSourceImageReady] = useState(false);
+  const [generatedImageReady, setGeneratedImageReady] = useState(false);
+  const [sourceDisplayError, setSourceDisplayError] = useState(false);
+  const [generatedDisplayError, setGeneratedDisplayError] = useState(false);
+  const [sourceAspectRatio, setSourceAspectRatio] = useState<number | null>(null);
 
   // Load token from sessionStorage
   useEffect(() => {
@@ -233,10 +268,14 @@ export default function DesignSummary() {
     if (sourceImageQuery.data) {
       const url = URL.createObjectURL(sourceImageQuery.data);
       setSourceImageUrl(url);
+      setSourceImageReady(false);
+      setSourceDisplayError(false);
       return () => {
         URL.revokeObjectURL(url);
       };
     }
+    setSourceImageUrl(null);
+    setSourceImageReady(false);
     return undefined;
   }, [sourceImageQuery.data]);
 
@@ -244,12 +283,38 @@ export default function DesignSummary() {
     if (generatedImageQuery.data) {
       const url = URL.createObjectURL(generatedImageQuery.data);
       setGeneratedImageUrl(url);
+      setGeneratedImageReady(false);
+      setGeneratedDisplayError(false);
       return () => {
         URL.revokeObjectURL(url);
       };
     }
+    setGeneratedImageUrl(null);
+    setGeneratedImageReady(false);
     return undefined;
   }, [generatedImageQuery.data]);
+
+  useEffect(() => {
+    if (!sourceImageUrl) {
+      setSourceAspectRatio(null);
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+      if (image.naturalWidth && image.naturalHeight) {
+        setSourceAspectRatio(image.naturalWidth / image.naturalHeight);
+      }
+    };
+    image.onerror = () => setSourceDisplayError(true);
+    image.src = sourceImageUrl;
+
+    return () => {
+      image.onload = null;
+      image.onerror = null;
+      image.src = "";
+    };
+  }, [sourceImageUrl]);
 
   // Handle query errors
   useEffect(() => {
@@ -259,12 +324,55 @@ export default function DesignSummary() {
         setAuthError(true);
       }
     }
-  }, [statusQuery.error]);
+    const sourceError = sourceImageQuery.error as any;
+    const generatedError = generatedImageQuery.error as any;
+    if (
+      sourceError?.status === 401 ||
+      sourceError?.status === 403 ||
+      generatedError?.status === 401 ||
+      generatedError?.status === 403
+    ) {
+      setAuthError(true);
+    }
+  }, [statusQuery.error, sourceImageQuery.error, generatedImageQuery.error]);
 
   const status = statusQuery.data?.status;
   const selections = statusQuery.data?.selections;
   const conceptSummary = statusQuery.data?.conceptSummary;
   const error = statusQuery.data?.error;
+  const sourceExpected = !!statusQuery.data?.sourceImageUrl;
+  const generatedExpected =
+    status === "completed" && !!statusQuery.data?.generatedImageUrl;
+  const imagePresentation = getDesignImagePresentation({
+    sourceReady: !!sourceImageUrl && sourceImageReady,
+    generatedReady: !!generatedImageUrl && generatedImageReady,
+    sourceLoading:
+      sourceImageQuery.isLoading ||
+      (!!sourceImageUrl && !sourceImageReady && !sourceDisplayError),
+    generatedLoading:
+      generatedImageQuery.isLoading ||
+      (!!generatedImageUrl && !generatedImageReady && !generatedDisplayError),
+    sourceError: sourceImageQuery.isError || sourceDisplayError,
+    generatedError: generatedImageQuery.isError || generatedDisplayError,
+    generatedExpected,
+    sourceExpected,
+  });
+  const generatedRenderable = imagePresentation === "comparison" || imagePresentation === "generated-only";
+  const imageFetchExpected = sourceExpected || generatedExpected;
+  const imagePanelVisible =
+    status === "completed" || imageFetchExpected;
+
+  const retryImages = () => {
+    setSourceImageReady(false);
+    setGeneratedImageReady(false);
+    setSourceDisplayError(false);
+    setGeneratedDisplayError(false);
+    void Promise.allSettled([
+      statusQuery.refetch(),
+      sourceExpected ? sourceImageQuery.refetch() : Promise.resolve(),
+      generatedExpected ? generatedImageQuery.refetch() : Promise.resolve(),
+    ]);
+  };
 
   const budgetLabel =
     selections?.budgetMin || selections?.budgetMax
@@ -315,13 +423,21 @@ export default function DesignSummary() {
       <div className="max-w-3xl mx-auto px-6">
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <div className="text-center mb-12">
-          {status === "completed" ? (
+          {status === "completed" && generatedRenderable ? (
             <div className="flex justify-center mb-6">
               <CheckCircle size={48} className="text-[#c9a84c]" strokeWidth={1.5} data-testid="icon-completed" />
+            </div>
+          ) : status === "completed" && imagePresentation === "loading" ? (
+            <div className="flex justify-center mb-6">
+              <Loader2 size={48} className="text-[#c9a84c] animate-spin" strokeWidth={1.5} data-testid="icon-image-loading" />
             </div>
           ) : status === "failed" ? (
             <div className="flex justify-center mb-6">
               <AlertCircle size={48} className="text-red-400" strokeWidth={1.5} data-testid="icon-failed" />
+            </div>
+          ) : status === "completed" ? (
+            <div className="flex justify-center mb-6">
+              <AlertCircle size={48} className="text-red-400" strokeWidth={1.5} data-testid="icon-image-error" />
             </div>
           ) : (
             <div className="flex justify-center mb-6">
@@ -330,7 +446,10 @@ export default function DesignSummary() {
           )}
 
           <h1 className="text-3xl md:text-4xl font-light tracking-wide mb-3" data-testid="text-title">
-            {status === "completed" && "ภาพแนวคิดของคุณพร้อมแล้ว"}
+             {status === "completed" && generatedRenderable && "ภาพแนวคิดของคุณพร้อมแล้ว"}
+             {status === "completed" && !generatedRenderable && imagePresentation === "loading" && "กำลังโหลดภาพแนวคิด..."}
+             {status === "completed" && !generatedRenderable && imagePresentation === "error" && "ไม่สามารถแสดงภาพแนวคิดได้"}
+             {status === "completed" && !generatedRenderable && imagePresentation === "source-only" && "ภาพต้นฉบับพร้อมแล้ว"}
             {status === "processing" && "กำลังสร้างภาพแนวคิด..."}
             {status === "pending" && "กำลังเตรียมการสร้างภาพ..."}
             {status === "failed" && "เกิดข้อผิดพลาด"}
@@ -348,7 +467,7 @@ export default function DesignSummary() {
             </p>
           )}
 
-          {status === "completed" && (
+           {status === "completed" && generatedRenderable && (
             <p className="text-white/30 text-xs mt-2">
               ทีมงาน Daybuilt จะติดต่อกลับภายใน 24 ชั่วโมง
             </p>
@@ -370,36 +489,159 @@ export default function DesignSummary() {
           <div className="border border-red-500/30 bg-red-500/5 p-6 mb-8" data-testid="text-status-error">
             <p className="text-sm text-red-400 mb-1 font-medium">ไม่สามารถโหลดสถานะได้</p>
             <p className="text-xs text-red-300/80">
-              กรุณาตรวจสอบการเชื่อมต่อและลองรีเฟรชหน้านี้อีกครั้ง
+              กรุณาตรวจสอบการเชื่อมต่อแล้วกดลองใหม่อีกครั้ง
             </p>
+            <button
+              type="button"
+              onClick={() => void statusQuery.refetch()}
+              className="mt-4 border border-white/20 px-4 py-2 text-xs text-white hover:bg-white/5"
+              data-testid="button-retry-status"
+            >
+              ลองใหม่
+            </button>
           </div>
         )}
 
         {/* ── Before/After Comparison ──────────────────────────────────────── */}
-        {sourceImageUrl && generatedImageUrl && (
+        {imagePanelVisible && (
           <div className="mb-8">
-            <div className="mb-4">
-              <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-1">
-                {selections?.keepLayout === "no"
-                  ? "AI Concept Preview — อนุญาตให้ปรับ Layout"
-                  : "AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ"}
-              </p>
-              <p className="text-xs text-white/40">
-                เลื่อนเพื่อเปรียบเทียบก่อนและหลัง
-              </p>
-            </div>
-            <ComparisonSlider
-              beforeUrl={sourceImageUrl}
-              afterUrl={generatedImageUrl}
-              beforeAlt="ห้องต้นฉบับ"
-              afterAlt="ภาพแนวคิด AI"
-            />
-            {selections?.keepLayout && (
-              <p className="text-xs text-white/40 mt-3">
-                {selections.keepLayout === "yes"
-                  ? "✓ ใช้โหมดรักษาสัดส่วนห้องและมุมกล้องเดิม"
-                  : "○ อนุญาตให้ AI ปรับ Layout"}
-              </p>
+            {/* Preload through protected object URLs and only call an image
+                ready after the browser confirms that it can display it. */}
+            {sourceImageUrl && (
+              <img
+                src={sourceImageUrl}
+                alt=""
+                aria-hidden="true"
+                className="sr-only"
+                onLoad={(event) => {
+                  setSourceImageReady(true);
+                  const image = event.currentTarget;
+                  if (image.naturalWidth && image.naturalHeight) {
+                    setSourceAspectRatio(image.naturalWidth / image.naturalHeight);
+                  }
+                }}
+                onError={() => setSourceDisplayError(true)}
+              />
+            )}
+            {generatedImageUrl && (
+              <img
+                src={generatedImageUrl}
+                alt=""
+                aria-hidden="true"
+                className="sr-only"
+                onLoad={() => setGeneratedImageReady(true)}
+                onError={() => setGeneratedDisplayError(true)}
+              />
+            )}
+
+            {imagePresentation === "loading" && (
+              <div className="border border-white/10 bg-[#0f0f0f] p-8 text-center" data-testid="image-loading">
+                <Loader2 size={28} className="mx-auto mb-3 animate-spin text-[#c9a84c]" />
+                <p className="text-sm text-white/70">กำลังโหลดภาพผลลัพธ์...</p>
+                <p className="mt-2 text-xs text-white/40">ภาพจะปรากฏเมื่อโหลดเสร็จสมบูรณ์</p>
+              </div>
+            )}
+
+            {imagePresentation === "error" && (
+              <div className="border border-red-500/30 bg-red-500/5 p-6 text-center" data-testid="text-image-error">
+                <AlertCircle size={28} className="mx-auto mb-3 text-red-400" />
+                <p className="text-sm text-red-300">ไม่สามารถโหลดภาพผลลัพธ์ได้</p>
+                <p className="mt-2 text-xs text-white/40">
+                  กรุณาตรวจสอบการเชื่อมต่อ แล้วลองโหลดภาพอีกครั้ง
+                </p>
+                <button
+                  type="button"
+                  onClick={retryImages}
+                  className="mt-4 bg-[#c9a84c] px-5 py-2 text-xs font-medium text-black hover:bg-[#b8943d]"
+                  data-testid="button-retry-images"
+                >
+                  ลองใหม่
+                </button>
+              </div>
+            )}
+
+            {imagePresentation === "comparison" && sourceImageUrl && generatedImageUrl && (
+              <>
+                <div className="mb-4">
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-1">
+                    {selections?.keepLayout === "no"
+                      ? "AI Concept Preview — อนุญาตให้ปรับ Layout"
+                      : "AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ"}
+                  </p>
+                  <p className="text-xs text-white/40">
+                    เลื่อนเพื่อเปรียบเทียบก่อนและหลัง
+                  </p>
+                </div>
+                <ComparisonSlider
+                  beforeUrl={sourceImageUrl}
+                  afterUrl={generatedImageUrl}
+                  beforeAlt="ห้องต้นฉบับ"
+                  afterAlt="ภาพแนวคิด AI"
+                />
+                {selections?.keepLayout && (
+                  <p className="text-xs text-white/40 mt-3">
+                    {selections.keepLayout === "yes"
+                      ? "✓ ใช้โหมดรักษาสัดส่วนห้องและมุมกล้องเดิม"
+                      : "○ อนุญาตให้ AI ปรับ Layout"}
+                  </p>
+                )}
+              </>
+            )}
+
+            {imagePresentation === "generated-only" && generatedImageUrl && (
+              <div>
+                <div className="mb-4">
+                  <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-1">
+                    AI Concept Preview
+                  </p>
+                  <p className="text-xs text-white/40">
+                    ภาพ AI โหลดสำเร็จ แต่ภาพห้องต้นฉบับไม่สามารถโหลดได้
+                  </p>
+                </div>
+                <SingleImage
+                  url={generatedImageUrl}
+                  alt="ภาพแนวคิด AI"
+                  label="AI"
+                  testId="img-generated"
+                  aspectRatio={sourceAspectRatio}
+                />
+                <button
+                  type="button"
+                  onClick={retryImages}
+                  className="mt-4 border border-white/20 px-5 py-2 text-xs text-white hover:bg-white/5"
+                  data-testid="button-retry-images"
+                >
+                  ลองโหลดภาพต้นฉบับใหม่
+                </button>
+              </div>
+            )}
+
+            {imagePresentation === "source-only" && sourceImageUrl && (
+              <div>
+                <div className="mb-4">
+                  <p className="text-[10px] tracking-[0.2em] text-white/50 uppercase mb-1">
+                    ภาพห้องต้นฉบับ
+                  </p>
+                  <p className="text-xs text-white/40">
+                    ภาพต้นฉบับโหลดสำเร็จ แต่ภาพ AI ยังไม่สามารถโหลดได้
+                  </p>
+                </div>
+                <SingleImage
+                  url={sourceImageUrl}
+                  alt="ห้องต้นฉบับ"
+                  label="ต้นฉบับ"
+                  testId="img-source"
+                  aspectRatio={sourceAspectRatio}
+                />
+                <button
+                  type="button"
+                  onClick={retryImages}
+                  className="mt-4 border border-white/20 px-5 py-2 text-xs text-white hover:bg-white/5"
+                  data-testid="button-retry-images"
+                >
+                  ลองโหลดภาพ AI ใหม่
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -482,7 +724,7 @@ export default function DesignSummary() {
         )}
 
         {/* ── AI Note ───────────────────────────────────────────────────────── */}
-        {status === "completed" && (
+        {status === "completed" && generatedRenderable && (
           <div className="border border-white/10 bg-[#111] p-6 mb-8">
             <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-2">
               หมายเหตุ
@@ -515,7 +757,7 @@ export default function DesignSummary() {
           >
             ติดต่อ Daybuilt
           </a>
-          {status === "completed" && (
+          {status === "completed" && generatedRenderable && (
             <a
               href="/contact"
               data-testid="link-request-quotation"
