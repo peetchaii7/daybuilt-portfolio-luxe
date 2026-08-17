@@ -11,6 +11,7 @@ interface Project {
   location: string;
   description: string;
   image: string;
+  alt?: string;
   images?: string[];
 }
 
@@ -105,6 +106,15 @@ const sections: { id: string; label: string; labelEn: string; projects: Project[
     label: "ตู้โชว์ / Media Wall",
     labelEn: "Display Cabinet & Media Wall",
     projects: [
+      {
+        id: 305,
+        title: "ตู้โชว์สิริมงคลสีดำ — อาจารย์นาค",
+        category: "ตู้โชว์ / Media Wall",
+        location: "โปรเจกต์อาจารย์นาค · 2569",
+        description: "ตู้โชว์บิวท์อินโทนดำที่ออกแบบให้เป็นฉากหลังอันสงบและเป็นระเบียบ สำหรับสิ่งของที่เจ้าของงานเชื่อมโยงกับความเป็นสิริมงคลและความมั่งคั่ง งานให้ความสำคัญกับสัดส่วนที่ชัดเจน จังหวะของพื้นที่จัดวาง รายละเอียดงานฝีมือ และแสงไฟวอร์มที่ช่วยให้ของแต่ละชิ้นมีบทบาทของตนเอง",
+        image: `${BASE}images/ajarn-nak-black-display-cabinet.jpg`,
+        alt: "ตู้โชว์บิวท์อินสีดำของอาจารย์นาค ออกแบบโดย Daybuilt.indesign สำหรับจัดแสดงสิ่งของอย่างเป็นระเบียบ",
+      },
       {
         id: 301,
         title: "Media Wall คอนโด Modern Luxury",
@@ -328,7 +338,7 @@ export default function Projects() {
                   <div className="aspect-[4/3] overflow-hidden relative bg-muted">
                     <img
                       src={project.image}
-                      alt={project.title}
+                      alt={project.alt ?? project.title}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
@@ -365,7 +375,7 @@ export default function Projects() {
                     <img
                       key={image}
                       src={image}
-                      alt={`${selectedProject.title} ภาพที่ ${index + 1}`}
+                      alt={selectedProject.images ? `${selectedProject.alt ?? selectedProject.title} ภาพที่ ${index + 1}` : (selectedProject.alt ?? selectedProject.title)}
                       className={selectedProject.images
                         ? "w-full aspect-[4/3] object-contain bg-background/40"
                         : "w-full h-full object-cover"}
