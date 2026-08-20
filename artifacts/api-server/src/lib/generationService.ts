@@ -7,6 +7,7 @@ import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import type { Logger } from 'pino';
 
 import { buildDesignPrompt, buildPromptSummary } from './designPrompt';
+import { buildImageEditOptions } from './imageEditOptions';
 import {
   isAllowedImageContentType,
   ObjectStorageService,
@@ -20,6 +21,8 @@ export const GENERATION_TIMEOUT_MS = 120_000;
 export const GENERATION_PROVIDER = 'openai';
 export const GENERATION_MODEL = 'gpt-image-1';
 
+export { buildImageEditOptions } from './imageEditOptions';
+
 /** Customer-safe error copy. Never contains diagnostics. */
 const CUSTOMER_ERROR_TIMEOUT =
   'การสร้างภาพใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง';
@@ -29,17 +32,6 @@ const CUSTOMER_ERROR_GENERIC =
 const objectStorageService = new ObjectStorageService();
 
 export type ClaimReason = 'start' | 'retry';
-
-export function buildImageEditOptions(
-  keepLayout: string | null | undefined,
-  size: '1024x1024' | '1536x1024' | '1024x1536',
-) {
-  return {
-    inputFidelity: keepLayout === 'no' ? ('low' as const) : ('high' as const),
-    size,
-    quality: 'high' as const,
-  };
-}
 
 export type ClaimResult =
   | { claimed: true; lead: Lead }

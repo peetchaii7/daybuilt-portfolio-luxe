@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run src/__tests__/image-read-security.test.ts src/__tests__/upload-security.test.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.21.0",

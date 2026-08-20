@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 
 import { buildDesignPrompt } from '../lib/designPrompt';
-import { buildImageEditOptions } from '../lib/generationService';
+import { buildImageEditOptions } from '../lib/imageEditOptions';
 import {
   planRoomImage,
   prepareRoomImage,
