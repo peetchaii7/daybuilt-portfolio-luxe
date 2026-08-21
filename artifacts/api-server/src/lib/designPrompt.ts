@@ -92,24 +92,33 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
   const specialNeeds = clean(input.description);
   const budget = formatBudget(input.budgetMin, input.budgetMax);
 
-  const preserveGeometry =
+  const furniturePlacement =
     keepLayout === 'no'
       ? [
-          'The customer allows layout changes. You may re-plan where the built-in furniture sits,',
-          'but you must still keep this exact same room: the same camera viewpoint, the same walls,',
-          'the same window and door openings, the same ceiling height and the same floor area.',
-          'Do not invent a different room and do not change the perspective.',
+          'The customer permits furniture-layout changes only.',
+          'You may re-plan only the placement and composition of the selected built-in furniture inside the unchanged room.',
+          'This permission never applies to the camera, framing, architecture, fixed fixtures or exterior view.',
         ].join(' ')
       : [
-          'This must be a genuine edit of the supplied photograph, not a new image.',
-          'Use the supplied room image as the primary structural and composition reference, not merely as a style reference.',
-          'Preserve the exact perspective, camera position, camera angle, focal composition, room dimensions and geometry.',
-          'Keep identical wall positions and widths, room depth, floor direction, ceiling shape and height.',
-          'Keep every window, door, column, beam, opening, socket and fixed architectural edge in exactly the same position and at the same scale.',
-          'Do not expand, narrow, crop, rotate, extend or redesign the architectural space. Make no structural changes.',
-          'Perform furniture insertion only: add or replace built-in furniture, lighting, finishes, colours and restrained decorative details.',
-          'The original room must remain immediately recognisable. Room accuracy has priority over visual drama.',
+          'Keep the room layout unchanged and place the selected built-in furniture only where it fits the existing space.',
+          'If the requested furniture cannot fit without changing the room, reduce or reposition the furniture; never alter the room.',
         ].join(' ');
+
+  const preserveGeometry = [
+    'NON-NEGOTIABLE ORIGINAL-ROOM LOCK: this must be a genuine edit of the supplied photograph, never a newly generated or re-imagined room.',
+    'Use the supplied room image as the primary structural and composition reference, not merely as a style reference.',
+    'Preserve the exact perspective, camera position, camera height, camera angle, field of view, lens/focal length, horizon line, vanishing points and perspective lines.',
+    'Preserve the exact crop, framing boundaries, focal composition, room dimensions and geometry; do not zoom in or out.',
+    'Keep identical wall positions and widths, room depth, floor direction and tile joints, ceiling shape and height.',
+    'Keep the corner coordinates, angles, dimensions and scale of every window, door, column, beam, opening, skirting board, socket, fixed light, fixed architectural edge and exterior view exactly where they are in the source.',
+    'Do not move, resize, reshape, remove, add or reinterpret any fixed architectural element.',
+    'Do not cover windows, doors, columns, beams, openings, sockets, fixed lights or architectural edges with furniture.',
+    'Do not expand, narrow, crop, rotate, extend, reframe or redesign the architectural space. Make no structural changes.',
+    'Perform furniture insertion only: add the selected built-in furniture, furniture-integrated lighting and physically local contact shadows.',
+    'Leave the existing walls, floor, ceiling, openings, fixed fixtures, surface finishes, ambient lighting and background unchanged.',
+    furniturePlacement,
+    'The original room must remain immediately recognisable. Room accuracy has priority over visual drama.',
+  ].join(' ');
 
   const lines: string[] = [
     'You are producing a photorealistic interior render for Daybuilt, a premium Thai built-in furniture studio.',
@@ -138,6 +147,7 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
     'DESIGN DIRECTION',
     '- The built-in furniture must look like real, premium, buildable Thai-market carpentry: accurate carcass thicknesses, realistic reveal gaps, plinths, shadow gaps, soft-close hardware and correct human scale.',
     '- Match Daybuilt house style: restrained luxury, clean horizontal lines, handle-less or slim-profile fronts, warm wood tones combined with matte neutrals, subtle brass or bronze accents used sparingly, and integrated indirect lighting where the budget allows.',
+    '- Apply the requested style, colour and materials only to the newly inserted furniture. Do not restyle, repaint, relight or replace the existing architecture.',
     `- ${budgetGuidance(input.budgetMin, input.budgetMax)}`,
   );
 
@@ -165,10 +175,12 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
     '',
     'OUTPUT REQUIREMENTS',
     '- Photorealistic result suitable to show a paying customer as a sales preview: correct perspective, physically plausible lighting and reflections, realistic material textures and believable contact shadows.',
-    '- Preserve the source image orientation and aspect ratio. Treat any plain dark padding outside the supplied photograph as temporary canvas only; do not place architecture or furniture in it.',
-    '- Keep the image clean and uncluttered; add only minimal, tasteful styling props that a Thai homeowner would plausibly own.',
+    '- Preserve the source image orientation, complete visible bounds and aspect ratio. No crop, zoom, rotation, extension or reframing is allowed.',
+    '- Treat any plain dark padding outside the supplied photograph as temporary canvas only; do not place architecture or furniture in it.',
+    '- Do not add, remove or redesign unrelated furniture, decor or styling props.',
     '- No text, no lettering, no labels, no logos, no watermarks, no signatures, no dimension annotations and no UI overlays anywhere in the image.',
     '- No people, no pets, no collage, no split screens, no before/after panels, no picture-in-picture and no borders or frames.',
+    '- Before returning the result, verify that the camera, framing, vanishing points, windows, doors, columns, beams, wall corners, ceiling edges and floor lines align with the supplied photograph. If a design choice conflicts with this lock, preserve the room and simplify the furniture.',
     '- Return a single full-bleed photographic image of the finished room.',
   );
 
@@ -200,7 +212,9 @@ export function buildPromptSummary(input: DesignPromptInput): string {
     parts.push(`โทนสี ${colorTone}`);
   }
   parts.push(
-    keepLayout === 'no' ? 'ปรับผังพื้นที่ได้' : 'คงผังห้องเดิมไว้ทั้งหมด',
+    keepLayout === 'no'
+      ? 'ปรับตำแหน่งงานบิวท์อินได้ โดยคงโครงสร้างและมุมกล้องเดิม'
+      : 'คงโครงสร้าง สัดส่วน และมุมกล้องเดิมทั้งหมด',
   );
 
   const head = parts.length > 0 ? parts.join(' · ') : 'งานบิวท์อินพรีเมียม';

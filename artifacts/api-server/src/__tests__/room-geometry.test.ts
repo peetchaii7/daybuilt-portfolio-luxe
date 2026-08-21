@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
 
-import { buildDesignPrompt } from '../lib/designPrompt';
+import { buildDesignPrompt, buildPromptSummary } from '../lib/designPrompt';
 import { buildImageEditOptions } from '../lib/imageEditOptions';
 import {
   planRoomImage,
@@ -135,13 +135,13 @@ describe('room image geometry', () => {
 });
 
 describe('generation fidelity settings', () => {
-  it('uses high input fidelity for Keep Layout and low only when changes are allowed', () => {
+  it('uses high input fidelity in every furniture-layout mode', () => {
     expect(buildImageEditOptions('yes', '1536x1024')).toEqual({
       inputFidelity: 'high',
       size: '1536x1024',
       quality: 'high',
     });
-    expect(buildImageEditOptions('no', '1024x1536').inputFidelity).toBe('low');
+    expect(buildImageEditOptions('no', '1024x1536').inputFidelity).toBe('high');
   });
 });
 
@@ -150,16 +150,29 @@ describe('room-edit prompt', () => {
     const prompt = buildDesignPrompt({ keepLayout: 'yes' });
     expect(prompt).toContain('primary structural and composition reference');
     expect(prompt).toContain('Preserve the exact perspective');
+    expect(prompt).toContain('field of view');
+    expect(prompt).toContain('horizon line, vanishing points and perspective lines');
+    expect(prompt).toContain('exact crop, framing boundaries');
     expect(prompt).toContain('window, door, column, beam, opening');
     expect(prompt).toContain('Make no structural changes');
     expect(prompt).toContain('Perform furniture insertion only');
     expect(prompt).toContain('accuracy has priority over visual drama');
   });
 
-  it('allows furniture re-planning only in layout-change mode', () => {
+  it('allows furniture re-planning without unlocking the room or camera', () => {
     const prompt = buildDesignPrompt({ keepLayout: 'no' });
-    expect(prompt).toContain('allows layout changes');
-    expect(prompt).toContain('re-plan where the built-in furniture sits');
-    expect(prompt).not.toContain('Perform furniture insertion only');
+    expect(prompt).toContain('permits furniture-layout changes only');
+    expect(prompt).toContain('re-plan only the placement and composition');
+    expect(prompt).toContain('never applies to the camera, framing, architecture');
+    expect(prompt).toContain('Perform furniture insertion only');
+    expect(prompt).toContain('vanishing points');
+  });
+
+  it('carries the Buddhist altar shelf selection into the prompt and summary', () => {
+    const input = { builtInType: 'หิ้งพระ', keepLayout: 'yes' };
+    expect(buildDesignPrompt(input)).toContain(
+      '- Built-in work to design: หิ้งพระ',
+    );
+    expect(buildPromptSummary(input)).toContain('หิ้งพระ');
   });
 });
