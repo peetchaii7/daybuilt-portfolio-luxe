@@ -564,9 +564,7 @@ export default function DesignSummary() {
               <>
                 <div className="mb-4">
                   <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-1">
-                    {selections?.keepLayout === "no"
-                      ? "AI Concept Preview — ปรับเฉพาะตำแหน่งงานบิวท์อิน"
-                      : "AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ"}
+                    AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ
                   </p>
                   <p className="text-xs text-white/40">
                     เลื่อนเพื่อเปรียบเทียบก่อนและหลัง

@@ -52,6 +52,32 @@ describe('room image geometry', () => {
     expect(prepared.orientation).toBeUndefined();
   });
 
+  it.each([
+    [1200, 800],
+    [800, 1200],
+    [900, 900],
+  ] as const)(
+    'restores the exact normalized dimensions for a %sx%s source',
+    async (width, height) => {
+      const source = await sharp({
+        create: {
+          width,
+          height,
+          channels: 3,
+          background: '#735c42',
+        },
+      })
+        .png()
+        .toBuffer();
+      const { buffer: prepared, plan } = await prepareRoomImage(source);
+      const restored = await restoreRoomAspectRatio(prepared, plan);
+      const metadata = await sharp(restored).metadata();
+
+      expect(metadata.width).toBe(width);
+      expect(metadata.height).toBe(height);
+    },
+  );
+
   it('restores the exact source aspect ratio by removing only added padding', async () => {
     const source = await sharp({
       create: {
@@ -142,6 +168,10 @@ describe('generation fidelity settings', () => {
       quality: 'high',
     });
     expect(buildImageEditOptions('no', '1024x1536').inputFidelity).toBe('high');
+    expect(buildImageEditOptions(null, '1024x1024').inputFidelity).toBe('high');
+    expect(buildImageEditOptions(undefined, '1024x1024').inputFidelity).toBe(
+      'high',
+    );
   });
 });
 
@@ -174,5 +204,22 @@ describe('room-edit prompt', () => {
       '- Built-in work to design: หิ้งพระ',
     );
     expect(buildPromptSummary(input)).toContain('หิ้งพระ');
+  });
+
+  it('keeps the room lock above conflicting styling or special requests', () => {
+    const prompt = buildDesignPrompt({
+      keepLayout: 'yes',
+      description: 'Move the window and add plants and artwork',
+    });
+    expect(prompt.indexOf('GEOMETRY — HIGHEST PRIORITY')).toBeLessThan(
+      prompt.indexOf('ROOM AND SCOPE'),
+    );
+    expect(prompt).toContain(
+      'original-room lock takes priority over every style request and special requirement',
+    );
+    expect(prompt).toContain(
+      "Honour the customer's special requirements only when they are compatible with the original-room lock",
+    );
+    expect(prompt).toContain('styling props, plants or artwork');
   });
 });

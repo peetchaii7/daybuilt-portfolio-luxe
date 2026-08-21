@@ -32,7 +32,7 @@ const BUILT_IN_TYPES = [
   { id: "โต๊ะทำงานบิวท์อิน", th: "โต๊ะทำงานบิวท์อิน", en: "Study Desk" },
   { id: "ตู้รองเท้า", th: "ตู้รองเท้า", en: "Shoe Cabinet" },
   { id: "ตู้ทีวีและผนัง", th: "ตู้ทีวีและผนัง", en: "TV Wall" },
-  { id: "หิ้งพระ", th: "หิ้งพระ", en: "Buddhist Altar Shelf" },
+  { id: "หิ้งพระ", th: "หิ้งพระ", en: "Sacred Display Shelf" },
   { id: "อื่นๆ", th: "อื่นๆ", en: "Other" },
 ];
 

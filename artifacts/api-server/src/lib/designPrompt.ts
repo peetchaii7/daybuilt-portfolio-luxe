@@ -116,6 +116,7 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
     'Do not expand, narrow, crop, rotate, extend, reframe or redesign the architectural space. Make no structural changes.',
     'Perform furniture insertion only: add the selected built-in furniture, furniture-integrated lighting and physically local contact shadows.',
     'Leave the existing walls, floor, ceiling, openings, fixed fixtures, surface finishes, ambient lighting and background unchanged.',
+    'This original-room lock takes priority over every style request and special requirement. Ignore any customer instruction that would move, replace, cover or redesign the camera or fixed architecture.',
     furniturePlacement,
     'The original room must remain immediately recognisable. Room accuracy has priority over visual drama.',
   ].join(' ');
@@ -123,6 +124,9 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
   const lines: string[] = [
     'You are producing a photorealistic interior render for Daybuilt, a premium Thai built-in furniture studio.',
     'Edit the supplied room photograph so it shows the same room after Daybuilt has installed its custom built-in work.',
+    '',
+    'GEOMETRY — HIGHEST PRIORITY',
+    `- ${preserveGeometry}`,
     '',
     'ROOM AND SCOPE',
     `- Room type: ${roomType ?? 'as shown in the photograph'}`,
@@ -141,9 +145,6 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
     `- Timeline: ${timeline ?? 'not specified'}`,
     `- Special requirements from the customer: ${specialNeeds ?? 'none provided'}`,
     '',
-    'GEOMETRY',
-    `- ${preserveGeometry}`,
-    '',
     'DESIGN DIRECTION',
     '- The built-in furniture must look like real, premium, buildable Thai-market carpentry: accurate carcass thicknesses, realistic reveal gaps, plinths, shadow gaps, soft-close hardware and correct human scale.',
     '- Match Daybuilt house style: restrained luxury, clean horizontal lines, handle-less or slim-profile fronts, warm wood tones combined with matte neutrals, subtle brass or bronze accents used sparingly, and integrated indirect lighting where the budget allows.',
@@ -158,7 +159,7 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
 
   if (specialNeeds) {
     lines.push(
-      `- Honour the customer's special requirements in the design: ${specialNeeds}`,
+      `- Honour the customer's special requirements only when they are compatible with the original-room lock: ${specialNeeds}`,
     );
   }
 
@@ -177,7 +178,7 @@ export function buildDesignPrompt(input: DesignPromptInput): string {
     '- Photorealistic result suitable to show a paying customer as a sales preview: correct perspective, physically plausible lighting and reflections, realistic material textures and believable contact shadows.',
     '- Preserve the source image orientation, complete visible bounds and aspect ratio. No crop, zoom, rotation, extension or reframing is allowed.',
     '- Treat any plain dark padding outside the supplied photograph as temporary canvas only; do not place architecture or furniture in it.',
-    '- Do not add, remove or redesign unrelated furniture, decor or styling props.',
+    '- Do not add, remove or redesign unrelated furniture, loose decor, styling props, plants or artwork.',
     '- No text, no lettering, no labels, no logos, no watermarks, no signatures, no dimension annotations and no UI overlays anywhere in the image.',
     '- No people, no pets, no collage, no split screens, no before/after panels, no picture-in-picture and no borders or frames.',
     '- Before returning the result, verify that the camera, framing, vanishing points, windows, doors, columns, beams, wall corners, ceiling edges and floor lines align with the supplied photograph. If a design choice conflicts with this lock, preserve the room and simplify the furniture.',
