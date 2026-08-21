@@ -383,7 +383,7 @@ export default function DesignSummary() {
     selections?.keepLayout === "yes"
       ? "รักษาสัดส่วนห้องและมุมกล้องเดิม"
       : selections?.keepLayout === "no"
-      ? "อนุญาตให้ AI ปรับ Layout"
+      ? "ปรับตำแหน่งงานบิวท์อิน โดยคงโครงสร้างและมุมกล้องเดิม"
       : selections?.keepLayout || null;
 
   if (!id) {
@@ -564,9 +564,7 @@ export default function DesignSummary() {
               <>
                 <div className="mb-4">
                   <p className="text-[10px] tracking-[0.2em] text-[#c9a84c] uppercase mb-1">
-                    {selections?.keepLayout === "no"
-                      ? "AI Concept Preview — อนุญาตให้ปรับ Layout"
-                      : "AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ"}
+                    AI Concept Preview — รักษาโครงสร้างพื้นที่เดิมตามภาพต้นฉบับ
                   </p>
                   <p className="text-xs text-white/40">
                     เลื่อนเพื่อเปรียบเทียบก่อนและหลัง
@@ -582,7 +580,7 @@ export default function DesignSummary() {
                   <p className="text-xs text-white/40 mt-3">
                     {selections.keepLayout === "yes"
                       ? "✓ ใช้โหมดรักษาสัดส่วนห้องและมุมกล้องเดิม"
-                      : "○ อนุญาตให้ AI ปรับ Layout"}
+                      : "○ ปรับตำแหน่งงานบิวท์อิน โดยคงโครงสร้างและมุมกล้องเดิม"}
                   </p>
                 )}
               </>
